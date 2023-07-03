@@ -3,6 +3,10 @@ import string
 from config import first_names, last_names, org_structure, org_names
 
 
+def mask_add_values(account_number, length, extra_params):
+    # Convert the account number to an integer, add 5000, then convert back to a string
+    return str(int(account_number) + 5000)
+
 def mask_only_allowed_values(account_number, length, extra_params):
     allowed_values = extra_params.get("allowed_values")
     return random.choice(allowed_values)

@@ -16,6 +16,15 @@ def mask_only_allowed_values(account_number, length, extra_params):
     allowed_values = extra_params.get("allowed_values")
     return random.choice(allowed_values)
 
+def mask_dea_name(account_number, length, extra_params):
+    acc_no = "".join(random.choices(string.digits, k=length))
+    separator = extra_params.get("separator", "-")
+    first_name = random.choice(first_names).upper()
+    last_name = random.choice(last_names).upper()
+    return f"{acc_no}{separator}{first_name} {separator}{last_name}"
+
+def mask_et_loan_no(account_number, length, extra_params):
+    return random.randint(410000, 490000)
 
 def mask_first_name(account_number, length, extra_params):
     return random.choice(first_names)

@@ -91,3 +91,13 @@ columns_to_mask = {
     "NARROW": ("VARCHAR", 4, None),
     "DT2": ("TIMESTAMP", None, None),
 }
+
+mask_functions = {
+    "account_num": mask_et_loan_no,
+    "account_name":mask_dea_name
+}
+
+columns_to_mask = {
+    "account_num": ("VARCHAR", None, None),
+    "account_name": ("VARCHAR", 9, None),
+}

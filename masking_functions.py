@@ -4,8 +4,13 @@ from config import first_names, last_names, org_structure, org_names
 
 
 def mask_add_values(account_number, length, extra_params):
-    # Convert the account number to an integer, add 5000, then convert back to a string
-    return str(int(account_number) + 5000)
+    print(account_number)
+    # Check if the account_number is an empty string
+    if account_number == "nan":
+        return account_number.replace("nan", "")
+    else:
+        # Convert the account number to a float, then to an integer, add 1000, then convert a string
+        return str(int(float(account_number)) + 1000)
 
 def mask_only_allowed_values(account_number, length, extra_params):
     allowed_values = extra_params.get("allowed_values")

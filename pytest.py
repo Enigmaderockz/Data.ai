@@ -33,10 +33,14 @@ scenarios('features/abc.feature')
 
 # Define the pytest_generate_tests hook to parametrize the fixtures
 def pytest_generate_tests(metafunc):
-    # Check if the test is a scenario outline
+    # Check if the test is a scenario outline and the function expects 'conf' and 'id' fixtures
     if 'conf' in metafunc.fixturenames and 'id' in metafunc.fixturenames:
         # Extract the examples from the feature file
-        example_params = metafunc.cls.examples
+        # This assumes that your feature file is correctly formatted and accessible at the path provided
+        example_params = []
+        for scenario in metafunc.cls.scenarios:
+            for example in scenario.examples:
+                example_params.append((example['conf'], example['id']))
         # Parametrize the test function with the collected parameters
         metafunc.parametrize('conf,id', example_params, indirect=True)
 
@@ -44,9 +48,9 @@ def pytest_generate_tests(metafunc):
 @pytest.fixture
 def conf(request):
     # Return the 'conf' parameter for the current test case
-    return request.param['conf']
+    return request.param
 
 @pytest.fixture
 def id(request):
     # Return the 'id' parameter for the current test case
-    return request.param['id']
+    return request.param

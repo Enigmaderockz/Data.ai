@@ -33,10 +33,13 @@ conf_params = ['abc.cfg', 'xyz.cfg']
 id_params = ['load1', 'load2']
 
 # Mark the fixtures to use the parameters
-@pytest.fixture(params=conf_params)
+@pytest.fixture
 def conf(request):
     return request.param
 
-@pytest.fixture(params=id_params)
+@pytest.fixture
 def id(request):
     return request.param
+
+# Mark the fixtures to be used by Pytest
+pytestmark = pytest.mark.parametrize('conf', conf_params, indirect=True) + pytest.mark.parametrize('id', id_params, indirect=True)

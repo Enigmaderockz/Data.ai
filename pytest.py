@@ -28,6 +28,7 @@ def then_data_match():
 #####################################################################3
 
 
+# Define the pytest_generate_tests hook to parametrize the fixtures
 def pytest_generate_tests(metafunc):
     # Check if the test is a scenario outline
     if 'scenario' in metafunc.fixturenames:
@@ -46,9 +47,9 @@ def pytest_generate_tests(metafunc):
 @pytest.fixture
 def conf(request):
     # Return the 'conf' parameter for the current test case
-    return request.param[0]
+    return request.node.get_closest_marker('parametrize').args[0][0]
 
 @pytest.fixture
 def id(request):
     # Return the 'id' parameter for the current test case
-    return request.param[1]
+    return request.node.get_closest_marker('parametrize').args[0][1]

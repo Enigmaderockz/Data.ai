@@ -28,29 +28,15 @@ def then_data_match():
 #####################################################################3
 
 
-# Define the pytest_generate_tests hook to parametrize the fixtures
-def pytest_generate_tests(metafunc):
-    # Check if the test is a scenario outline
-    if 'scenario' in metafunc.fixturenames:
-        # Extract the scenario from the test function
-        scenario = metafunc.function.scenario
-        # Create a list to hold the parameter sets for each example
-        example_params = []
-        # Iterate over the examples in the scenario
-        for example in scenario.examples:
-            # Append the parameter set (conf, id) for each example
-            example_params.append((example['conf'], example['id']))
-        # Parametrize the test function with the collected parameters
-        metafunc.parametrize('conf,id', example_params, indirect=True)
+# Define the parameters for conf and id
+conf_params = ['abc.cfg', 'xyz.cfg']
+id_params = ['load1', 'load2']
 
-# Define the fixtures to receive the parametrized values
-
-@pytest.fixture
+# Mark the fixtures to use the parameters
+@pytest.fixture(params=conf_params)
 def conf(request):
-    # Return the 'conf' parameter for the current test case
-    return request.node.callspec.params['conf']
+    return request.param
 
-@pytest.fixture
+@pytest.fixture(params=id_params)
 def id(request):
-    # Return the 'id' parameter for the current test case
-    return request.node.callspec.params['id']
+    return request.param

@@ -28,16 +28,16 @@ def then_data_match():
 #####################################################################3
 
 
-@pytest.fixture
-def conf(request):
-    return request.param
+@given("conf", "id", target_fixture="conf_id_params")
+def conf_id_params(conf, id):
+    return {"conf": conf, "id": id}
 
 @pytest.fixture
-def id(request):
-    return request.param
+def conf(conf_id_params):
+    return conf_id_params["conf"]
 
-@pytest.fixture(params=[('abc.cfg', 'load1'), ('xyz.cfg', 'load2')], ids=['test_case_1', 'test_case_2'])
-def job_details(request, conf, id):
-    return dict(conf=conf, id=id)
+@pytest.fixture
+def id(conf_id_params):
+    return conf_id_params["id"]
 
 

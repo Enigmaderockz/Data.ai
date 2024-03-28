@@ -44,12 +44,13 @@ def pytest_generate_tests(metafunc):
         metafunc.parametrize('conf,id', example_params, indirect=True)
 
 # Define the fixtures to receive the parametrized values
+
 @pytest.fixture
 def conf(request):
     # Return the 'conf' parameter for the current test case
-    return request.node.get_closest_marker('parametrize').args[0][0]
+    return request.node.callspec.params['conf']
 
 @pytest.fixture
 def id(request):
     # Return the 'id' parameter for the current test case
-    return request.node.get_closest_marker('parametrize').args[0][1]
+    return request.node.callspec.params['id']

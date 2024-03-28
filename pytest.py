@@ -28,10 +28,22 @@ def then_data_match():
 #####################################################################3
 
 
+# Define the pytest_generate_tests hook to parametrize the fixtures
+def pytest_generate_tests(metafunc):
+    # Check if the test is a scenario outline
+    if "scenario" in metafunc.fixturenames:
+        scenario = metafunc.function.scenario
+        # Get the examples for the scenario outline
+        for example in scenario.examples:
+            # Parametrize the fixtures with the example values
+            metafunc.parametrize("conf", [example["conf"]], indirect=True)
+            metafunc.parametrize("id", [example["id"]], indirect=True)
+
+# Define the fixtures to receive the parametrized values
 @pytest.fixture
-def conf(scenario, request):
-    return scenario['conf']
+def conf(request):
+    return request.param
 
 @pytest.fixture
-def id(scenario, request):
-    return scenario['id']
+def id(request):
+    return request.param

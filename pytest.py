@@ -8,8 +8,8 @@ scenarios("./feature/")
 @pytest.fixture
 def job_details(request):
     return {
-        'conf': request.param['conf'],
-        'id': request.param['id']
+        'conf': request.getfixturevalue('conf'),
+        'id': request.getfixturevalue('id')
     }
 
 # Given step to define the configuration file and product id

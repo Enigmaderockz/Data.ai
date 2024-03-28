@@ -28,17 +28,28 @@ def then_data_match():
 #####################################################################3
 
 
-# Load the scenarios from the feature file
-scenarios('features/abc.feature')
+# Define the pytest_generate_tests hook to parametrize the fixtures
+def pytest_generate_tests(metafunc):
+    # Check if the test is a scenario outline
+    if 'scenario' in metafunc.fixturenames:
+        # Extract the scenario from the test function
+        scenario = metafunc.function.scenario
+        # Create a list to hold the parameter sets for each example
+        example_params = []
+        # Iterate over the examples in the scenario
+        for example in scenario.examples:
+            # Append the parameter set (conf, id) for each example
+            example_params.append((example['conf'], example['id']))
+        # Parametrize the test function with the collected parameters
+        metafunc.parametrize('conf,id', example_params, indirect=True)
+
+# Define the fixtures to receive the parametrized values
+@pytest.fixture
+def conf(request):
+    # Return the 'conf' parameter for the current test case
+    return request.node.get_closest_marker('parametrize').args[0][0]
 
 @pytest.fixture
-def scenario(request):
-    return request.cls.scenario
-
-@pytest.fixture
-def conf(request, scenario):
-    return scenario.table["conf"][0]  # Assuming first row in table
-
-@pytest.fixture
-def id(request, scenario):
-    return scenario.table["id"][0]  # Assuming first row in table
+def id(request):
+    # Return the 'id' parameter for the current test case
+    return request.node.get_closest_marker('parametrize').args[0][1]

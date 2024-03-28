@@ -47,9 +47,9 @@ def pytest_generate_tests(metafunc):
 @pytest.fixture
 def conf(request):
     # Return the 'conf' parameter for the current test case
-    return request.node.get_closest_marker('parametrize').args[0][0]
+    return request.getfixturevalue('conf')
 
 @pytest.fixture
 def id(request):
     # Return the 'id' parameter for the current test case
-    return request.node.get_closest_marker('parametrize').args[0][1]
+    return request.getfixturevalue('id')

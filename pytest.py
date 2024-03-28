@@ -31,17 +31,14 @@ def then_data_match():
 # Load the scenarios from the feature file
 scenarios('features/abc.feature')
 
-def pytest_generate_tests(metafunc):
-    if "conf" in metafunc.fixturenames and "id" in metafunc.fixturenames:
-        scenario = metafunc.cls.scenario
-        if scenario:
-            test_data = scenario.table
-            metafunc.parametrize("conf, id", test_data)
+@pytest.fixture
+def scenario(request):
+    return request.cls.scenario
 
 @pytest.fixture
-def conf(request):
-    return request.param
+def conf(request, scenario):
+    return scenario.table["conf"][0]  # Assuming first row in table
 
 @pytest.fixture
-def id(request):
-    return request.param
+def id(request, scenario):
+    return scenario.table["id"][0]  # Assuming first row in table

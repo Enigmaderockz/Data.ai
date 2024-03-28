@@ -31,26 +31,12 @@ def then_data_match():
 # Load the scenarios from the feature file
 scenarios('features/abc.feature')
 
-# Define the pytest_generate_tests hook to parametrize the fixtures
-def pytest_generate_tests(metafunc):
-    # Check if the test is a scenario outline and the function expects 'conf' and 'id' fixtures
-    if 'conf' in metafunc.fixturenames and 'id' in metafunc.fixturenames:
-        # Extract the examples from the feature file
-        # This assumes that your feature file is correctly formatted and accessible at the path provided
-        example_params = []
-        for scenario in metafunc.cls.scenarios:
-            for example in scenario.examples:
-                example_params.append((example['conf'], example['id']))
-        # Parametrize the test function with the collected parameters
-        metafunc.parametrize('conf,id', example_params, indirect=True)
-
-# Define the fixtures to receive the parametrized values
-@pytest.fixture
+# Parametrize the 'conf' fixture to receive values directly from the examples in the feature file
+@pytest.fixture(params=[example['conf'] for example in scenarios[0].examples])
 def conf(request):
-    # Return the 'conf' parameter for the current test case
     return request.param
 
-@pytest.fixture
+# Parametrize the 'id' fixture to receive values directly from the examples in the feature file
+@pytest.fixture(params=[example['id'] for example in scenarios[0].examples])
 def id(request):
-    # Return the 'id' parameter for the current test case
     return request.param

@@ -382,10 +382,7 @@ def fetch_all_issues(jql_query):
 
     return all_issues
     
-# Global counters for summary
-total_issues = 0
-total_no_automation_reason = 0
-total_automation_reason = 0
+
 
 def process_issues(jql_query):
     # Fetch all issues for the current JQL query
@@ -426,17 +423,7 @@ def process_issues(jql_query):
         for issue in issue_list:
             print(f"{issue['key']}|{issue['fields']['summary']}")
 
-    # Update global counters
-    total_issues += len(issues)
-    total_no_automation_reason += len(no_automation_reason)
-    total_automation_reason += sum(len(issue_list) for issue_list in automation_reason_with_values.values())
-
-    # Print summary for the current JQL query
-    print("\nSummary for current JQL query:")
-    print(f"Total test cases: {len(issues)}")
-    print(f"Total test cases with no automation reason: {len(no_automation_reason)}")
-    print(f"Total test cases with automation reason: {sum(len(issue_list) for issue_list in automation_reason_with_values.values())}")
-
+ 
 # Function to process all JQL queries with retries
 def process_all_jql_queries():
     with concurrent.futures.ThreadPoolExecutor() as executor:

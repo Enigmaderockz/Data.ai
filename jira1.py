@@ -191,3 +191,101 @@ with concurrent.futures.ThreadPoolExecutor() as executor:
     for future in concurrent.futures.as_completed(futures):
         future.result()
 
+
+............................................................................
+
+
+import asyncio
+import aiohttp
+from requests_kerberos import HTTPKerberosAuth, REQUIRED
+
+# Jira server URL
+jira_url = 'https://your-company-jira.com'
+
+# List of JQL queries
+jql_queries = [
+    'created >= "2024-07-31" AND created < "2024-08-01" AND component = "DRM"',
+    'created >= "2024-07-31" AND created < "2024-08-01" AND component = "AIDT"'
+]
+
+# Jira search API endpoint
+search_url = f'{jira_url}/rest/api/2/search'
+
+# Kerberos authentication (not used directly in aiohttp, but needed for Kerberos ticket)
+kerberos_auth = HTTPKerberosAuth(mutual_authentication=REQUIRED)
+
+# Async function to fetch issues for a given JQL query and start position
+async def fetch_issues(session, jql_query, start_at, max_results=1000):
+    params = {
+        'jql': jql_query,
+        'startAt': start_at,
+        'maxResults': max_results
+    }
+    
+    async with session.get(search_url, params=params) as response:
+        if response.status == 200:
+            return await response.json()
+        else:
+            print(f"Failed to retrieve issues for JQL '{jql_query}': {response.status} - {response.reason}")
+            return []
+
+# Async function to fetch all issues for a given JQL query
+async def fetch_all_issues(session, jql_query):
+    start_at = 0
+    max_results = 1000
+    all_issues = []
+
+    while True:
+        data = await fetch_issues(session, jql_query, start_at, max_results)
+        issues = data.get('issues', [])
+        all_issues.extend(issues)
+        if len(issues) < max_results:
+            break
+        start_at += max_results
+
+    return all_issues
+
+# Async function to process issues for a given JQL query
+async def process_issues(session, jql_query):
+    issues = await fetch_all_issues(session, jql_query)
+
+    no_automation_reason = []
+    automation_reason_with_values = {
+        'Fully automated': [],
+        'Partially automated': [],
+        'Can\'t be automated': []
+    }
+
+    for issue in issues:
+        cust_field = issue['fields'].get('cust_field')
+        if not cust_field or not cust_field.get('value'):
+            no_automation_reason.append(issue)
+        else:
+            reason = cust_field['value']
+            if reason in automation_reason_with_values:
+                automation_reason_with_values[reason].append(issue)
+            else:
+                automation_reason_with_values[reason] = [issue]
+
+    component = jql_query.split('component = ')[1].strip('"')
+
+    print(f"\nResults for {component}:\n")
+    print(f"Issues with blank automation reason: {len(no_automation_reason)}")
+    for issue in no_automation_reason:
+        print(f"{issue['key']}|{issue['fields']['summary']}")
+
+    print("\nIssues with automation reason:")
+    for reason, issue_list in automation_reason_with_values.items():
+        print(f"{reason}: {len(issue_list)}")
+        for issue in issue_list:
+            print(f"{issue['key']}|{issue['fields']['summary']}")
+
+async def main():
+    async with aiohttp.ClientSession() as session:
+        tasks = [process_issues(session, jql_query) for jql_query in jql_queries]
+        await asyncio.gather(*tasks)
+
+# Run the main function
+asyncio.run(main())
+
+

@@ -381,10 +381,11 @@ def fetch_all_issues(jql_query):
             break
 
     return all_issues
-# Update global counters
-total_issues += len(issues)
-total_no_automation_reason += len(no_automation_reason)
-total_automation_reason += sum(len(issue_list) for issue_list in automation_reason_with_values.values())
+    
+# Global counters for summary
+total_issues = 0
+total_no_automation_reason = 0
+total_automation_reason = 0
 
 def process_issues(jql_query):
     # Fetch all issues for the current JQL query

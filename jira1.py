@@ -195,9 +195,10 @@ with concurrent.futures.ThreadPoolExecutor() as executor:
 ............................................................................
 
 
-import asyncio
-import aiohttp
+import requests
 from requests_kerberos import HTTPKerberosAuth, REQUIRED
+import concurrent.futures
+import time
 
 # Jira server URL
 jira_url = 'https://your-company-jira.com'
@@ -211,44 +212,63 @@ jql_queries = [
 # Jira search API endpoint
 search_url = f'{jira_url}/rest/api/2/search'
 
-# Kerberos authentication (not used directly in aiohttp, but needed for Kerberos ticket)
+# HTTP headers
+headers = {
+    'Content-Type': 'application/json'
+}
+
+# Kerberos authentication
 kerberos_auth = HTTPKerberosAuth(mutual_authentication=REQUIRED)
 
-# Async function to fetch issues for a given JQL query and start position
-async def fetch_issues(session, jql_query, start_at, max_results=1000):
-    params = {
-        'jql': jql_query,
-        'startAt': start_at,
-        'maxResults': max_results
-    }
-    
-    async with session.get(search_url, params=params) as response:
-        if response.status == 200:
-            return await response.json()
-        else:
-            print(f"Failed to retrieve issues for JQL '{jql_query}': {response.status} - {response.reason}")
-            return []
-
-# Async function to fetch all issues for a given JQL query
-async def fetch_all_issues(session, jql_query):
+# Function to fetch all issues for a given JQL query with retries
+def fetch_all_issues(jql_query):
     start_at = 0
     max_results = 1000
     all_issues = []
+    retry_attempts = 3
+    retry_delay = 5
 
     while True:
-        data = await fetch_issues(session, jql_query, start_at, max_results)
-        issues = data.get('issues', [])
-        all_issues.extend(issues)
-        if len(issues) < max_results:
+        # Request parameters
+        params = {
+            'jql': jql_query,
+            'startAt': start_at,
+            'maxResults': max_results
+        }
+
+        for attempt in range(retry_attempts):
+            try:
+                # Make the request
+                response = requests.get(search_url, headers=headers, params=params, auth=kerberos_auth)
+
+                # Check if the request was successful
+                if response.status_code == 200:
+                    issues = response.json()['issues']
+                    all_issues.extend(issues)
+                    if len(issues) < max_results:
+                        return all_issues
+                    start_at += max_results
+                    break
+                else:
+                    print(f"Failed to retrieve issues for JQL '{jql_query}': {response.status_code} - {response.text}")
+                    if response.status_code == 401:  # Unauthorized
+                        print("Authentication issue, retrying...")
+                        time.sleep(retry_delay)  # Wait before retrying
+            except requests.exceptions.RequestException as e:
+                print(f"Request failed: {e}")
+                time.sleep(retry_delay)  # Wait before retrying
+
+        if attempt == retry_attempts - 1:
+            print(f"Failed to retrieve issues for JQL '{jql_query}' after {retry_attempts} attempts.")
             break
-        start_at += max_results
 
     return all_issues
 
-# Async function to process issues for a given JQL query
-async def process_issues(session, jql_query):
-    issues = await fetch_all_issues(session, jql_query)
+def process_issues(jql_query):
+    # Fetch all issues for the current JQL query
+    issues = fetch_all_issues(jql_query)
 
+    # Initialize lists to categorize issues
     no_automation_reason = []
     automation_reason_with_values = {
         'Fully automated': [],
@@ -256,6 +276,7 @@ async def process_issues(session, jql_query):
         'Can\'t be automated': []
     }
 
+    # Process each issue
     for issue in issues:
         cust_field = issue['fields'].get('cust_field')
         if not cust_field or not cust_field.get('value'):
@@ -267,8 +288,10 @@ async def process_issues(session, jql_query):
             else:
                 automation_reason_with_values[reason] = [issue]
 
+    # Determine the component for the current JQL query
     component = jql_query.split('component = ')[1].strip('"')
 
+    # Print the results for the current JQL query
     print(f"\nResults for {component}:\n")
     print(f"Issues with blank automation reason: {len(no_automation_reason)}")
     for issue in no_automation_reason:
@@ -280,12 +303,8 @@ async def process_issues(session, jql_query):
         for issue in issue_list:
             print(f"{issue['key']}|{issue['fields']['summary']}")
 
-async def main():
-    async with aiohttp.ClientSession() as session:
-        tasks = [process_issues(session, jql_query) for jql_query in jql_queries]
-        await asyncio.gather(*tasks)
-
-# Run the main function
-asyncio.run(main())
-
-
+# Use ThreadPoolExecutor to fetch issues concurrently
+with concurrent.futures.ThreadPoolExecutor() as executor:
+    futures = [executor.submit(process_issues, jql_query) for jql_query in jql_queries]
+    for future in concurrent.futures.as_completed(futures):
+        future.result()

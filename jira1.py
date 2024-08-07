@@ -252,6 +252,14 @@ def process_issues(jql_query):
         else:
             labels_with_values['Has values'].append(issue)
 
+
+    # Categorize by resolution
+        resolution = issue['fields'].get('resolution')
+        if not resolution:
+            resolution_with_values['None'].append(issue)
+        else:
+            resolution_with_values['Has values'].append(issue)
+
     # Determine the component for the current JQL query
     component = jql_query.split('component = ')[1].strip('"')
 
@@ -271,6 +279,13 @@ def process_issues(jql_query):
     print("\nIssues categorized by labels:")
     for label_status, issue_list in labels_with_values.items():
         print(f"Labels {label_status}: {len(issue_list)}")
+        for issue in issue_list:
+            print(f"{issue['key']}|{issue['fields']['summary']}")
+
+
+    print("\nIssues categorized by resolution:")
+    for resolution_status, issue_list in resolution_with_values.items():
+        print(f"Resolution {resolution_status}: {len(issue_list)}")
         for issue in issue_list:
             print(f"{issue['key']}|{issue['fields']['summary']}")
 

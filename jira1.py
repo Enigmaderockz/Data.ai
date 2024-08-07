@@ -468,7 +468,8 @@ def process_issues(jql_query):
     for resolution_status, issue_list in resolution_with_values.items():
         print(f"Resolution {resolution_status}: {len(issue_list)}")
         for issue in issue_list:
-            print(f"{issue['key']}|{issue['fields']['summary']}")
+            resolution_name = issue['fields'].get('resolution', {}).get('name', 'UNRESOLVED')
+            print(f"{issue['key']}|{issue['fields']['summary']}|{resolution_name}")
 
 # Function to process all JQL queries with retries
 def process_all_jql_queries():

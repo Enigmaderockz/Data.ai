@@ -232,6 +232,12 @@ def process_issues(jql_query):
         'Has values': []
     }
 
+    resolution_with_values = {
+        'None': [],
+        'Has values': []
+    }
+
+
     # Process each issue
     for issue in issues:
         # Categorize by automation reason

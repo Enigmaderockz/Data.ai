@@ -993,18 +993,22 @@ def categorize_issues(issues, field_name):
 
 # Generic function to print and save categorized issues
 def print_and_save_categorized_issues(categorized_issues, field_name, default_value, email_content, base_url):
-    email_body = ""
+    email_body = f"\nIssues categorized by {field_name}:<br>"
     for status, issue_list in categorized_issues.items():
         count = len(issue_list)
+        email_body += f"{field_name} {status}: {count}<br>"
+        
         if count > 0:
             filename = f"{field_name.replace(' ', '_')}_{status.replace(' ', '_')}_{count}.csv"
-            file_url = f"{base_url}/{filename}"
+            for issue in issue_list:
+                value = issue['fields'].get(field_name)
+                if field_name == 'resolution' and value:
+                    value = value['name']
+                issue['field_value'] = value if value else default_value
+            
             save_issues_to_csv(issue_list, filename)
-            # Append to the email body with a link
-            email_body += f"{field_name} {status}: <a href='{file_url}'>{count}</a><br>"
-        else:
-            # Append the count without a link
-            email_body += f"{field_name} {status}: {count}<br>"
+            file_url = f"{base_url}/{filename}"
+            email_body += f"<a href='{file_url}'>Details</a><br>"
     
     email_content.append(email_body)
 

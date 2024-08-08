@@ -1125,15 +1125,32 @@ import time
 import conf  # Import the configuration file
 import logging
 import csv
-import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+import smtplib
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Jira server URL
 jira_url = 'https://your-company-jira.com'
+
+# Generate the JQL queries dynamically based on components in conf.py
+jql_queries = [
+    f'created >= "2024-07-31" AND created < "2024-08-01" AND component = "{component}"' 
+    for component in conf.components
+] + [
+    f'created >= "2024-07-31" AND created < "2024-08-01" AND component = "{component}"' 
+    for component in conf.components1
+]
+
+# Jira search API endpoint
+search_url = f'{jira_url}/rest/api/2/search'
+
+# HTTP headers
+headers = {
+    'Content-Type': 'application/json'
+}
 
 # Kerberos authentication
 kerberos_auth = HTTPKerberosAuth(mutual_authentication=REQUIRED)
@@ -1147,6 +1164,7 @@ def fetch_all_issues(jql_query):
     retry_delay = 5
 
     while True:
+        # Request parameters
         params = {
             'jql': jql_query,
             'startAt': start_at,
@@ -1155,8 +1173,10 @@ def fetch_all_issues(jql_query):
 
         for attempt in range(retry_attempts):
             try:
-                response = requests.get(f'{jira_url}/rest/api/2/search', params=params, auth=kerberos_auth)
+                # Make the request
+                response = requests.get(search_url, headers=headers, params=params, auth=kerberos_auth)
 
+                # Check if the request was successful
                 if response.status_code == 200:
                     issues = response.json()['issues']
                     all_issues.extend(issues)
@@ -1168,10 +1188,10 @@ def fetch_all_issues(jql_query):
                     logging.error(f"Failed to retrieve issues for JQL '{jql_query}': {response.status_code} - {response.text}")
                     if response.status_code == 401:  # Unauthorized
                         logging.warning("Authentication issue, retrying...")
-                        time.sleep(retry_delay)
+                        time.sleep(retry_delay)  # Wait before retrying
             except requests.exceptions.RequestException as e:
                 logging.error(f"Request failed: {e}")
-                time.sleep(retry_delay)
+                time.sleep(retry_delay)  # Wait before retrying
 
         if attempt == retry_attempts - 1:
             logging.error(f"Failed to retrieve issues for JQL '{jql_query}' after {retry_attempts} attempts.")
@@ -1194,151 +1214,127 @@ def categorize_issues(issues, field_name):
     return categorized_issues
 
 # Function to save issues to a CSV file
-def save_issues_to_csv(issue_list, filename):
-    keys = ['key', 'summary', 'field_value']
-    with open(filename, 'w', newline='', encoding='utf-8') as csvfile:
-        writer = csv.DictWriter(csvfile, fieldnames=keys)
+def save_issues_to_csv(issues, filename):
+    with open(filename, 'w', newline='') as csvfile:
+        fieldnames = ['Key', 'Summary', 'Field Value']
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+
         writer.writeheader()
-        for issue in issue_list:
+        for issue in issues:
             writer.writerow({
-                'key': issue['key'],
-                'summary': issue['fields']['summary'],
-                'field_value': issue['field_value']
+                'Key': issue['key'],
+                'Summary': issue['fields']['summary'],
+                'Field Value': issue['fields'].get('cust_field', {}).get('value', 'N/A')
             })
 
-# Updated function to print and save categorized issues and build email content with embedded links
+# Generic function to print categorized issues and prepare email content
 def print_and_save_categorized_issues(categorized_issues, field_name, default_value, email_content, base_url):
-    email_body = f"\nIssues categorized by {field_name}:<br>"
+    email_content.append(f"<h3>Issues categorized by {field_name}:</h3>")
     for status, issue_list in categorized_issues.items():
         count = len(issue_list)
-        
+        email_content.append(f"<p>{field_name} {status}: {count}</p>")
         if count > 0:
             filename = f"{field_name.replace(' ', '_')}_{status.replace(' ', '_')}_{count}.csv"
-            for issue in issue_list:
-                value = issue['fields'].get(field_name)
-                if field_name == 'resolution' and value:
-                    value = value['name']
-                issue['field_value'] = value if value else default_value
-            
             save_issues_to_csv(issue_list, filename)
-            file_url = f"{base_url}/{filename}"
-            email_body += f"{field_name} {status}: <a href='{file_url}'>{count}</a><br>"
+            email_content.append(f"<p>{field_name} {status}: <a href='{base_url}/{filename}'>{count}</a></p>")
         else:
-            email_body += f"{field_name} {status}: {count}<br>"
-    
-    email_content.append(email_body)
-
-# Function to process issues for a given JQL query
-def process_issues(jql_query):
-    issues = fetch_all_issues(jql_query)
-
-    # Categorize issues based on automation reason, labels, and resolution
-    no_automation_reason = []
-    automation_reason_with_values = {
-        'Fully Automated': [],
-        'Partially Automated': [],
-        'Automated and Not Usable': [],
-        'Pending Automation Analysis': [],
-        'Not Feasible-Not Automated': [],
-        'Feasible-Not Automated': [],
-        'Feasible-Automation In Progress': []
-    }
-
-    for issue in issues:
-        cust_field = issue['fields'].get('cust_field')
-        if not cust_field or not cust_field.get('value'):
-            no_automation_reason.append(issue)
-        else:
-            reason = cust_field['value']
-            if reason in automation_reason_with_values:
-                automation_reason_with_values[reason].append(issue)
-            else:
-                automation_reason_with_values[reason] = [issue]
-
-    labels_with_values = categorize_issues(issues, 'labels')
-    resolution_with_values = categorize_issues(issues, 'resolution')
-
-    # Determine the component for the current JQL query
-    component = jql_query.split('component = ')[1].strip('"')
-
-    # Print results and prepare email content
-    print(f"\nResults for {component}:\n")
-
-    email_content = []
-
-    print(f"Issues with blank automation reason: {len(no_automation_reason)}")
-    if len(no_automation_reason) > 0:
-        filename = f"{component}_No_Automation_Reason_{len(no_automation_reason)}.csv"
-        save_issues_to_csv(no_automation_reason, filename)
-        email_content.append(f"Issues with blank automation reason: <a href='http://your-server.com/files/{filename}'>{len(no_automation_reason)}</a><br>")
-    else:
-        email_content.append(f"Issues with blank automation reason: 0<br>")
-
-    print("\nIssues with automation reason:")
-    for reason, issue_list in automation_reason_with_values.items():
-        count = len(issue_list)
-        print(f"{reason}: {count}")
-        if count > 0:
-            filename = f"{component}_{reason.replace(' ', '_')}_{count}.csv"
-            save_issues_to_csv(issue_list, filename)
-            email_content.append(f"{reason}: <a href='http://your-server.com/files/{filename}'>{count}</a><br>")
-        else:
-            email_content.append(f"{reason}: 0<br>")
-    
-    print_and_save_categorized_issues(labels_with_values, 'labels', 'NO LABEL', email_content, base_url="http://your-server.com/files")
-    print_and_save_categorized_issues(resolution_with_values, 'resolution', 'UNRESOLVED', email_content, base_url="http://your-server.com/files")
-
-    # Now, send the email with the content
-    send_email("Jira Report for " + component, "\n".join(email_content))
+            email_content.append(f"<p>{field_name} {status}: {count}</p>")
 
 # Function to send an email
 def send_email(subject, body):
-    sender_email = "your_email@example.com"
-    recipient_email = "recipient@example.com"
-
     msg = MIMEMultipart()
-    msg['From'] = sender_email
-    msg['To'] = recipient_email
+    msg['From'] = 'your-email@example.com'
+    msg['To'] = 'recipient@example.com'
     msg['Subject'] = subject
 
     msg.attach(MIMEText(body, 'html'))
 
-    try:
-        server = smtplib.SMTP('smtp.example.com', 587)
+    with smtplib.SMTP('smtp.example.com', 587) as server:
         server.starttls()
-        server.login(sender_email, "your_password")
-        server.sendmail(sender_email, recipient_email, msg.as_string())
-        server.quit()
-        logging.info(f"Email sent to {recipient_email}")
-    except Exception as e:
-        logging.error(f"Failed to send email: {e}")
+        server.login('your-email@example.com', 'your-password')
+        server.send_message(msg)
 
-# Function to process all JQL queries with retries
+# Function to process issues for a given JQL query with retries
+def process_issues(jql_query):
+    retry_attempts = 3
+    for attempt in range(retry_attempts):
+        try:
+            issues = fetch_all_issues(jql_query)
+            no_automation_reason = []
+            automation_reason_with_values = {
+                'Fully Automated': [],
+                'Partially Automated': [],
+                'Automated and Not Usable': [],
+                'Pending Automation Analysis': [],
+                'Not Feasible-Not Automated': [],
+                'Feasible-Not Automated': [],
+                'Feasible-Automation In Progress': []
+            }
+
+            for issue in issues:
+                cust_field = issue['fields'].get('cust_field')
+                if not cust_field or not cust_field.get('value'):
+                    no_automation_reason.append(issue)
+                else:
+                    reason = cust_field['value']
+                    if reason in automation_reason_with_values:
+                        automation_reason_with_values[reason].append(issue)
+                    else:
+                        automation_reason_with_values[reason] = [issue]
+
+            labels_with_values = categorize_issues(issues, 'labels')
+            resolution_with_values = categorize_issues(issues, 'resolution')
+
+            component = jql_query.split('component = ')[1].strip('"')
+
+            return {
+                'component': component,
+                'no_automation_reason': no_automation_reason,
+                'automation_reason_with_values': automation_reason_with_values,
+                'labels_with_values': labels_with_values,
+                'resolution_with_values': resolution_with_values
+            }
+
+        except Exception as e:
+            logging.error(f"Error processing JQL '{jql_query}': {e}")
+            if attempt < retry_attempts - 1:
+                logging.info(f"Retrying JQL '{jql_query}' (Attempt {attempt + 1}/{retry_attempts})")
+                time.sleep(5)  # Wait before retrying
+            else:
+                raise  # Re-raise the exception after final attempt
+
+# Function to process all JQL queries and send one consolidated email
 def process_all_jql_queries():
+    email_content = []
+    
     with concurrent.futures.ThreadPoolExecutor() as executor:
         futures = {executor.submit(process_issues, jql_query): jql_query for jql_query in jql_queries}
         for future in concurrent.futures.as_completed(futures):
             jql_query = futures[future]
             try:
-                future.result()
-            except Exception as e:
-                logging.error(f"Error processing JQL '{jql_query}': {e}")
-                # Retry the same JQL query if it fails
-                retry_attempts = 3
-                for attempt in range(retry_attempts):
-                    logging.info(f"Retrying JQL '{jql_query}' (Attempt {attempt + 1}/{retry_attempts})")
-                    try:
-                        process_issues(jql_query)
-                        break
-                    except Exception as e:
-                        logging.error(f"Retry {attempt + 1} failed for JQL '{jql_query}': {e}")
-                        time.sleep(5)  # Wait before retrying
+                result = future.result()
+                component = result['component']
+                
+                email_content.append(f"<h2>Results for {component}:</h2>")
+                
+                if len(result['no_automation_reason']) > 0:
+                    filename = f"{component}_No_Automation_Reason_{len(result['no_automation_reason'])}.csv"
+                    save_issues_to_csv(result['no_automation_reason'], filename)
+                    email_content.append(f"<p>Issues with blank automation reason: <a href='http://your-server.com/files/{filename}'>{len(result['no_automation_reason'])}</a></p>")
+                else:
+                    email_content.append("<p>Issues with blank automation reason: 0</p>")
 
-# Combine components from conf.py into jql_queries
-jql_queries = [
-    f'created >= "2024-07-31" AND created < "2024-08-01" AND component = "{component}"' 
-    for component in (conf.components + conf.components1)
-]
+                email_content.append("<h3>Issues with automation reason:</h3>")
+                for reason, issue_list in result['automation_reason_with_values'].items():
+                    count = len(issue_list)
+                    if count > 0:
+                        filename = f"{component}_{reason.replace(' ', '_')}_{count}.csv"
+                        save_issues_to_csv(issue_list, filename)
+                        email_content.append(f"<p>{reason}: <a href='http://your-server.com/files/{filename}'>{count}</a></p>")
+                    else:
+                        email_content.append(f"<p>{reason}: 0</p>")
+
+                print_and_save_categorized_issues(result['labels_with_values'], 'labels', '
 
 # Start processing all JQL queries
 process_all_jql_queries()

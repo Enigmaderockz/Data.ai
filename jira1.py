@@ -1342,3 +1342,44 @@ jql_queries = [
 
 # Start processing all JQL queries
 process_all_jql_queries()
+
+
+
+
+
+# Function to process all JQL queries with retries and accumulate email content
+def process_all_jql_queries():
+    all_email_content = []  # List to accumulate email content
+
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        futures = {executor.submit(process_issues, jql_query): jql_query for jql_query in jql_queries}
+        for future in concurrent.futures.as_completed(futures):
+            jql_query = futures[future]
+            try:
+                # Capture the email content from each processed JQL query
+                email_content = future.result()
+                all_email_content.append(email_content)
+            except Exception as e:
+                logging.error(f"Error processing JQL '{jql_query}': {e}")
+                # Retry the same JQL query if it fails
+                retry_attempts = 3
+                for attempt in range(retry_attempts):
+                    logging.info(f"Retrying JQL '{jql_query}' (Attempt {attempt + 1}/{retry_attempts})")
+                    try:
+                        email_content = process_issues(jql_query)
+                        all_email_content.append(email_content)
+                        break
+                    except Exception as e:
+                        logging.error(f"Retry {attempt + 1} failed for JQL '{jql_query}': {e}")
+                        time.sleep(5)  # Wait before retrying
+
+    # After all JQL queries are processed, combine the email content and send the email
+    combined_email_content = "\n".join(all_email_content)
+    send_email("Jira Report for All Components", combined_email_content)
+
+# Updated function to process issues for a given JQL query and return email content
+def process_issues(jql_query):
+    issues = fetch_all_issues(jql_query)
+    ...
+    # Accumulate email content instead of sending the email
+    return "\n".join(email_content)

@@ -1271,6 +1271,8 @@ def process_issues(jql_query):
         filename = f"{component}_No_Automation_Reason_{len(no_automation_reason)}.csv"
         save_issues_to_csv(no_automation_reason, filename)
         email_content.append(f"Issues with blank automation reason: <a href='http://your-server.com/files/{filename}'>{len(no_automation_reason)}</a><br>")
+    else:
+        email_content.append(f"Issues with blank automation reason: 0<br>")
 
     print("\nIssues with automation reason:")
     for reason, issue_list in automation_reason_with_values.items():
@@ -1280,6 +1282,8 @@ def process_issues(jql_query):
             filename = f"{component}_{reason.replace(' ', '_')}_{count}.csv"
             save_issues_to_csv(issue_list, filename)
             email_content.append(f"{reason}: <a href='http://your-server.com/files/{filename}'>{count}</a><br>")
+        else:
+            email_content.append(f"{reason}: 0<br>")
     
     print_and_save_categorized_issues(labels_with_values, 'labels', 'NO LABEL', email_content, base_url="http://your-server.com/files")
     print_and_save_categorized_issues(resolution_with_values, 'resolution', 'UNRESOLVED', email_content, base_url="http://your-server.com/files")

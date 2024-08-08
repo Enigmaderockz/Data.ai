@@ -1347,42 +1347,75 @@ process_all_jql_queries()
 
 
 
-# Function to process all JQL queries with retries and accumulate email content
-def process_all_jql_queries():
-    all_email_content = []  # List to accumulate email content
+7..................
 
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        futures = {executor.submit(process_issues, jql_query): jql_query for jql_query in jql_queries}
-        for future in concurrent.futures.as_completed(futures):
-            jql_query = futures[future]
-            try:
-                # Capture the email content from each processed JQL query
-                email_content = future.result()
-                all_email_content.append(email_content)
-            except Exception as e:
-                logging.error(f"Error processing JQL '{jql_query}': {e}")
-                # Retry the same JQL query if it fails
-                retry_attempts = 3
-                for attempt in range(retry_attempts):
-                    logging.info(f"Retrying JQL '{jql_query}' (Attempt {attempt + 1}/{retry_attempts})")
-                    try:
-                        email_content = process_issues(jql_query)
-                        all_email_content.append(email_content)
-                        break
-                    except Exception as e:
-                        logging.error(f"Retry {attempt + 1} failed for JQL '{jql_query}': {e}")
-                        time.sleep(5)  # Wait before retrying
+def save_issues_to_csv(issue_list, filename, jql_query):
+    keys = ['key', 'summary', 'field_value']
+    with open(filename, 'w', newline='', encoding='utf-8') as csvfile:
+        writer = csv.DictWriter(csvfile, fieldnames=keys)
+        
+        # Write the JQL query as the first row
+        csvfile.write(f"JQL,{jql_query}\n")
+        
+        writer.writeheader()
+        for issue in issue_list:
+            writer.writerow({
+                'key': issue['key'],
+                'summary': issue['fields']['summary'],
+                'field_value': issue['field_value']
+            })
 
-    # After all JQL queries are processed, combine the email content and send the email
-    combined_email_content = "\n".join(all_email_content)
-    send_email("Jira Report for All Components", combined_email_content)
 
-# Updated function to process issues for a given JQL query and return email content
-def process_issues(jql_query):
+def process_issues(jql_query, all_email_content):
     issues = fetch_all_issues(jql_query)
-    ...
-    # Accumulate email content instead of sending the email
-    return "\n".join(email_content)
+
+    no_automation_reason = []
+    automation_reason_with_values = {
+        'Fully Automated': [],
+        'Partially Automated': [],
+        'Automated and Not Usable': [],
+        'Pending Automation Analysis': [],
+        'Not Feasible-Not Automated': [],
+        'Feasible-Not Automated': [],
+        'Feasible-Automation In Progress': []
+    }
+
+    for issue in issues:
+        cust_field = issue['fields'].get('cust_field')
+        if not cust_field or not cust_field.get('value'):
+            no_automation_reason.append(issue)
+        else:
+            reason = cust_field['value']
+            if reason in automation_reason_with_values:
+                automation_reason_with_values[reason].append(issue)
+            else:
+                automation_reason_with_values[reason] = [issue]
+
+    labels_with_values = categorize_issues(issues, 'labels')
+    resolution_with_values = categorize_issues(issues, 'resolution')
+
+    component = jql_query.split('component = ')[1].strip('"')
+
+    email_content = []
+
+    if len(no_automation_reason) > 0:
+        filename = f"{component}_No_Automation_Reason_{len(no_automation_reason)}.csv"
+        save_issues_to_csv(no_automation_reason, filename, jql_query)
+        email_content.append(f"Issues with blank automation reason: <a href='http://your-server.com/files/{filename}'>{len(no_automation_reason)}</a><br>")
+
+    for reason, issue_list in automation_reason_with_values.items():
+        count = len(issue_list)
+        if count > 0:
+            filename = f"{component}_{reason.replace(' ', '_')}_{count}.csv"
+            save_issues_to_csv(issue_list, filename, jql_query)
+            email_content.append(f"{reason}: <a href='http://your-server.com/files/{filename}'>{count}</a><br>")
+    
+    print_and_save_categorized_issues(labels_with_values, 'labels', 'NO LABEL', email_content, base_url="http://your-server.com/files")
+    print_and_save_categorized_issues(resolution_with_values, 'resolution', 'UNRESOLVED', email_content, base_url="http://your-server.com/files")
+
+    all_email_content.append("\n".join(email_content))
+
+
 
 
 8...............................

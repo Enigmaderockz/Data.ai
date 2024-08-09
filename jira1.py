@@ -1683,3 +1683,120 @@ def send_email(subject, body):
 
 # The rest of your code remains the same
 
+// Summary
+
+def process_issues(jql_query, all_email_content, summary_counts):
+    issues = fetch_all_issues(jql_query)
+
+    no_automation_reason = []
+    automation_reason_with_values = {
+        'Fully Automated': [],
+        'Partially Automated': [],
+        'Automated and Not Usable': [],
+        'Pending Automation Analysis': [],
+        'Not Feasible-Not Automated': [],
+        'Feasible-Not Automated': [],
+        'Feasible-Automation In Progress': []
+    }
+
+    for issue in issues:
+        cust_field = issue['fields'].get('cust_field')
+        if not cust_field or not cust_field.get('value'):
+            no_automation_reason.append(issue)
+        else:
+            reason = cust_field['value']
+            if reason in automation_reason_with_values:
+                automation_reason_with_values[reason].append(issue)
+            else:
+                automation_reason_with_values[reason] = [issue]
+
+    labels_with_values = categorize_issues(issues, 'labels')
+    resolution_with_values = categorize_issues(issues, 'resolution')
+
+    component = jql_query.split('component = ')[1].strip('"')
+
+    email_content = []
+
+    if len(no_automation_reason) > 0:
+        filename = f"{component}_No_Automation_Reason_{len(no_automation_reason)}.csv"
+        save_issues_to_csv(no_automation_reason, filename)
+        email_content.append(f"Issues with blank automation reason: <a href='http://your-server.com/files/{filename}'>{len(no_automation_reason)}</a><br>")
+        summary_counts['no_automation_reason'] += len(no_automation_reason)
+
+    for reason, issue_list in automation_reason_with_values.items():
+        count = len(issue_list)
+        if count > 0:
+            filename = f"{component}_{reason.replace(' ', '_')}_{count}.csv"
+            save_issues_to_csv(issue_list, filename)
+            email_content.append(f"{reason}: <a href='http://your-server.com/files/{filename}'>{count}</a><br>")
+            summary_counts[reason.lower().replace(' ', '_')] += count
+    
+    print_and_save_categorized_issues(labels_with_values, 'labels', 'NO LABEL', email_content, base_url="http://your-server.com/files")
+    summary_counts['labels_none'] += len(labels_with_values['None'])
+    summary_counts['labels_with_values'] += len(labels_with_values['Has values'])
+
+    print_and_save_categorized_issues(resolution_with_values, 'resolution', 'UNRESOLVED', email_content, base_url="http://your-server.com/files")
+    summary_counts['resolution_none'] += len(resolution_with_values['None'])
+    summary_counts['resolution_with_values'] += len(resolution_with_values['Has values'])
+
+    all_email_content.append("\n".join(email_content))
+
+def process_all_jql_queries():
+    all_email_content = []  # Accumulate all email content across JQL queries
+    summary_counts = {
+        'no_automation_reason': 0,
+        'fully_automated': 0,
+        'partially_automated': 0,
+        'automated_and_not_usable': 0,
+        'pending_automation_analysis': 0,
+        'not_feasible_not_automated': 0,
+        'feasible_not_automated': 0,
+        'feasible_automation_in_progress': 0,
+        'labels_none': 0,
+        'labels_with_values': 0,
+        'resolution_none': 0,
+        'resolution_with_values': 0
+    }
+
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        futures = {executor.submit(process_issues, jql_query, all_email_content, summary_counts): jql_query for jql_query in jql_queries}
+        for future in concurrent.futures.as_completed(futures):
+            jql_query = futures[future]
+            try:
+                future.result()
+            except Exception as e:
+                logging.error(f"Error processing JQL '{jql_query}': {e}")
+                retry_attempts = 3
+                for attempt in range(retry_attempts):
+                    logging.info(f"Retrying JQL '{jql_query}' (Attempt {attempt + 1}/{retry_attempts})")
+                    try:
+                        process_issues(jql_query, all_email_content, summary_counts)
+                        break
+                    except Exception as e:
+                        logging.error(f"Retry {attempt + 1} failed for JQL '{jql_query}': {e}")
+                        time.sleep(5)  # Wait before retrying
+
+    combined_email_content = "\n".join(all_email_content)
+
+    # Add summary to the email content
+    summary = f"""
+    <br><br><strong>Summary:</strong><br>
+    Total issues with no automation reason: {summary_counts['no_automation_reason']}<br>
+    Total fully automated issues: {summary_counts['fully_automated']}<br>
+    Total partially automated issues: {summary_counts['partially_automated']}<br>
+    Total automated and not usable issues: {summary_counts['automated_and_not_usable']}<br>
+    Total pending automation analysis issues: {summary_counts['pending_automation_analysis']}<br>
+    Total not feasible - not automated issues: {summary_counts['not_feasible_not_automated']}<br>
+    Total feasible - not automated issues: {summary_counts['feasible_not_automated']}<br>
+    Total feasible - automation in progress issues: {summary_counts['feasible_automation_in_progress']}<br>
+    Total issues categorized by label (None): {summary_counts['labels_none']}<br>
+    Total issues categorized by label (Has values): {summary_counts['labels_with_values']}<br>
+    Total issues categorized by resolution (None): {summary_counts['resolution_none']}<br>
+    Total issues categorized by resolution (Has values): {summary_counts['resolution_with_values']}<br>
+    """
+    combined_email_content += summary
+
+    send_email("Jira Report for All Components", combined_email_content)
+
+# Start processing all JQL queries
+process_all_jql_queries()

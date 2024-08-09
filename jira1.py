@@ -1800,3 +1800,23 @@ def process_all_jql_queries():
 
 # Start processing all JQL queries
 process_all_jql_queries()
+
+...................................................
+
+def update_summary_counts(summary_counts, category, categorized_issues):
+    summary_counts[f'{category}_none'] += len(categorized_issues['None'])
+    summary_counts[f'{category}_with_values'] += len(categorized_issues['Has values'])
+
+
+def process_issues(jql_query, all_email_content, summary_counts):
+    issues = fetch_all_issues(jql_query)
+
+    # Existing logic for categorizing issues
+    labels_with_values = categorize_issues(issues, 'labels')
+    resolution_with_values = categorize_issues(issues, 'resolution')
+
+    # Use the helper function to update summary counts
+    update_summary_counts(summary_counts, 'labels', labels_with_values)
+    update_summary_counts(summary_counts, 'resolution', resolution_with_values)
+
+    # The rest of your existing code

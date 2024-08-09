@@ -1629,3 +1629,57 @@ jql_queries = [
 
 # Start processing all JQL queries
 process_all_jql_queries()
+
+
+beautify..................................
+
+
+def print_and_save_categorized_issues(categorized_issues, field_name, default_value, email_content, base_url):
+    email_body = f"<h3 style='color:blue;'>Issues categorized by {field_name}:</h3>"
+    email_body += "<ul style='font-family: Arial, sans-serif;'>"
+    
+    for status, issue_list in categorized_issues.items():
+        count = len(issue_list)
+        
+        if count > 0:
+            filename = f"{field_name.replace(' ', '_')}_{status.replace(' ', '_')}_{count}.csv"
+            for issue in issue_list:
+                value = issue['fields'].get(field_name)
+                if field_name == 'resolution' and value:
+                    value = value['name']
+                issue['field_value'] = value if value else default_value
+            
+            save_issues_to_csv(issue_list, filename)
+            file_url = f"{base_url}/{filename}"
+            email_body += f"<li><strong>{field_name} {status}</strong>: <a href='{file_url}'>{count}</a></li>"
+        else:
+            email_body += f"<li><strong>{field_name} {status}</strong>: {count}</li>"
+    
+    email_body += "</ul>"
+    email_content.append(email_body)
+
+def send_email(subject, body):
+    sender_email = "your_email@example.com"
+    recipient_email = "recipient@example.com"
+
+    msg = MIMEMultipart()
+    msg['From'] = sender_email
+    msg['To'] = recipient_email
+    msg['Subject'] = subject
+
+    # Wrap the body with a div that applies the Arial font to all text
+    full_body = f"<div style='font-family: Arial, sans-serif;'>{body}</div>"
+    msg.attach(MIMEText(full_body, 'html'))
+
+    try:
+        server = smtplib.SMTP('smtp.example.com', 587)
+        server.starttls()
+        server.login(sender_email, "your_password")
+        server.sendmail(sender_email, recipient_email, msg.as_string())
+        server.quit()
+        logging.info(f"Email sent to {recipient_email}")
+    except Exception as e:
+        logging.error(f"Failed to send email: {e}")
+
+# The rest of your code remains the same
+

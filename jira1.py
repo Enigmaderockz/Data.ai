@@ -1820,3 +1820,260 @@ def process_issues(jql_query, all_email_content, summary_counts):
     update_summary_counts(summary_counts, 'resolution', resolution_with_values)
 
     # The rest of your existing code
+########################################33 generic #############################################################################3
+
+
+
+import requests
+from requests_kerberos import HTTPKerberosAuth, REQUIRED
+import concurrent.futures
+import time
+import conf  # Import the configuration file
+import logging
+import csv
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+
+# Set up logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
+
+# Jira server URL
+jira_url = 'https://your-company-jira.com'
+
+# Kerberos authentication
+kerberos_auth = HTTPKerberosAuth(mutual_authentication=REQUIRED)
+
+def fetch_all_issues(jql_query):
+    start_at = 0
+    max_results = 1000
+    all_issues = []
+    retry_attempts = 3
+    retry_delay = 5
+
+    while True:
+        params = {
+            'jql': jql_query,
+            'startAt': start_at,
+            'maxResults': max_results
+        }
+
+        for attempt in range(retry_attempts):
+            try:
+                response = requests.get(f'{jira_url}/rest/api/2/search', params=params, auth=kerberos_auth)
+
+                if response.status_code == 200:
+                    issues = response.json()['issues']
+                    all_issues.extend(issues)
+                    if len(issues) < max_results:
+                        return all_issues
+                    start_at += max_results
+                    break
+                else:
+                    logging.error(f"Failed to retrieve issues for JQL '{jql_query}': {response.status_code} - {response.text}")
+                    if response.status_code == 401:  # Unauthorized
+                        logging.warning("Authentication issue, retrying...")
+                        time.sleep(retry_delay)
+            except requests.exceptions.RequestException as e:
+                logging.error(f"Request failed: {e}")
+                time.sleep(retry_delay)
+
+        if attempt == retry_attempts - 1:
+            logging.error(f"Failed to retrieve issues for JQL '{jql_query}' after {retry_attempts} attempts.")
+            break
+
+    return all_issues
+
+def categorize_issues(issues, field_name):
+    categorized_issues = {
+        'None': [],
+        'Has values': []
+    }
+    for issue in issues:
+        field_value = issue['fields'].get(field_name)
+        if not field_value:
+            categorized_issues['None'].append(issue)
+        else:
+            categorized_issues['Has values'].append(issue)
+    return categorized_issues
+
+def save_issues_to_csv(issue_list, filename):
+    keys = ['key', 'summary', 'field_value']
+    with open(filename, 'w', newline='', encoding='utf-8') as csvfile:
+        writer = csv.DictWriter(csvfile, fieldnames=keys)
+        writer.writeheader()
+        for issue in issue_list:
+            writer.writerow({
+                'key': issue['key'],
+                'summary': issue['fields']['summary'],
+                'field_value': issue['field_value']
+            })
+
+def print_and_save_categorized_issues(categorized_issues, field_name, default_value, email_content, base_url):
+    email_body = f"\nIssues categorized by {field_name}:<br>"
+    for status, issue_list in categorized_issues.items():
+        count = len(issue_list)
+        
+        if count > 0:
+            filename = f"{field_name.replace(' ', '_')}_{status.replace(' ', '_')}_{count}.csv"
+            for issue in issue_list:
+                value = issue['fields'].get(field_name)
+                if field_name == 'resolution' and value:
+                    value = value['name']
+                issue['field_value'] = value if value else default_value
+            
+            save_issues_to_csv(issue_list, filename)
+            file_url = f"{base_url}/{filename}"
+            email_body += f"{field_name} {status}: <a href='{file_url}'>{count}</a><br>"
+        else:
+            email_body += f"{field_name} {status}: {count}<br>"
+    
+    email_content.append(email_body)
+
+def process_issues(jql_query, all_email_content):
+    issues = fetch_all_issues(jql_query)
+
+    no_automation_reason = []
+    automation_reason_with_values = {
+        'Fully Automated': [],
+        'Partially Automated': [],
+        'Automated and Not Usable': [],
+        'Pending Automation Analysis': [],
+        'Not Feasible-Not Automated': [],
+        'Feasible-Not Automated': [],
+        'Feasible-Automation In Progress': []
+    }
+
+    for issue in issues:
+        cust_field = issue['fields'].get('cust_field')
+        if not cust_field or not cust_field.get('value'):
+            no_automation_reason.append(issue)
+        else:
+            reason = cust_field['value']
+            if reason in automation_reason_with_values:
+                automation_reason_with_values[reason].append(issue)
+            else:
+                automation_reason_with_values[reason] = [issue]
+
+    labels_with_values = categorize_issues(issues, 'labels')
+    resolution_with_values = categorize_issues(issues, 'resolution')
+
+    field_name = jql_query.split(' AND ')[-1].split(' = ')[0]
+
+    email_content = []
+
+    if len(no_automation_reason) > 0:
+        filename = f"{field_name}_No_Automation_Reason_{len(no_automation_reason)}.csv"
+        save_issues_to_csv(no_automation_reason, filename)
+        email_content.append(f"Issues with blank automation reason: <a href='http://your-server.com/files/{filename}'>{len(no_automation_reason)}</a><br>")
+        summary_counts['no_automation_reason'] += len(no_automation_reason)
+
+
+    for reason, issue_list in automation_reason_with_values.items():
+        count = len(issue_list)
+        if count > 0:
+            filename = f"{field_name}_{reason.replace(' ', '_')}_{count}.csv"
+            save_issues_to_csv(issue_list, filename)
+            email_content.append(f"{reason}: <a href='http://your-server.com/files/{filename}'>{count}</a><br>")
+            summary_counts[reason.lower().replace(' ', '_')] += count
+    
+    print_and_save_categorized_issues(labels_with_values, 'labels', 'NO LABEL', email_content, base_url="http://your-server.com/files")
+    print_and_save_categorized_issues(resolution_with_values, 'resolution', 'UNRESOLVED', email_content, base_url="http://your-server.com/files")
+
+    print_and_save_categorized_issues(labels_with_values, 'labels', 'NO LABEL', email_content, base_url="http://your-server.com/files")
+    summary_counts['labels_none'] += len(labels_with_values['None'])
+    summary_counts['labels_with_values'] += len(labels_with_values['Has values'])
+
+    print_and_save_categorized_issues(resolution_with_values, 'resolution', 'UNRESOLVED', email_content, base_url="http://your-server.com/files")
+    summary_counts['resolution_none'] += len(resolution_with_values['None'])
+    summary_counts['resolution_with_values'] += len(resolution_with_values['Has values'])
+
+    all_email_content.append("\n".join(email_content))
+
+def send_email(subject, body):
+    sender_email = "your_email@example.com"
+    recipient_email = "recipient@example.com"
+
+    msg = MIMEMultipart()
+    msg['From'] = sender_email
+    msg['To'] = recipient_email
+    msg['Subject'] = subject
+
+    msg.attach(MIMEText(body, 'html'))
+
+    try:
+        server = smtplib.SMTP('smtp.example.com', 587)
+        server.starttls()
+        server.login(sender_email, "your_password")
+        server.sendmail(sender_email, recipient_email, msg.as_string())
+        server.quit()
+        logging.info(f"Email sent to {recipient_email}")
+    except Exception as e:
+        logging.error(f"Failed to send email: {e}")
+
+def process_all_jql_queries():
+    all_email_content = []  # Accumulate all email content across JQL queries
+
+    summary_counts = {
+        'no_automation_reason': 0,
+        'fully_automated': 0,
+        'partially_automated': 0,
+        'automated_and_not_usable': 0,
+        'pending_automation_analysis': 0,
+        'not_feasible_not_automated': 0,
+        'feasible_not_automated': 0,
+        'feasible_automation_in_progress': 0,
+        'labels_none': 0,
+        'labels_with_values': 0,
+        'resolution_none': 0,
+        'resolution_with_values': 0
+    }
+
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        futures = {executor.submit(process_issues, jql_query, all_email_content): jql_query for jql_query in jql_queries}
+        for future in concurrent.futures.as_completed(futures):
+            jql_query = futures[future]
+            try:
+                future.result()
+            except Exception as e:
+                logging.error(f"Error processing JQL '{jql_query}': {e}")
+                retry_attempts = 3
+                for attempt in range(retry_attempts):
+                    logging.info(f"Retrying JQL '{jql_query}' (Attempt {attempt + 1}/{retry_attempts})")
+                    try:
+                        process_issues(jql_query, all_email_content)
+                        break
+                    except Exception as e:
+                        logging.error(f"Retry {attempt + 1} failed for JQL '{jql_query}': {e}")
+                        time.sleep(5)  # Delay between retries
+
+    summary_email_body = "\n".join(all_email_content)
+    send_email("Jira Issue Report", summary_email_body)
+
+def generate_jql_queries(start_date, end_date, fields_and_values):
+    jql_queries = []
+
+    for field, values in fields_and_values.items():
+        if values:  # Check if the list is not empty
+            joined_values = ', '.join(f'"{value}"' for value in values)
+            jql_queries.append(f'created >= "{start_date}" AND created < "{end_date}" AND {field} IN ({joined_values})')
+
+    return jql_queries
+
+if __name__ == "__main__":
+    # Define the date range
+    start_date = "2024-07-31"
+    end_date = "2024-08-01"
+
+    # Define the fields and their corresponding values
+    fields_and_values = {
+        'component': conf.components + conf.components1,
+        'assignee': conf.assignees + conf.assignees1
+        # Add more fields and values as needed
+    }
+
+    # Generate JQL queries based on the specified fields and values
+    jql_queries = generate_jql_queries(start_date, end_date, fields_and_values)
+
+    # Process all generated JQL queries
+    process_all_jql_queries()

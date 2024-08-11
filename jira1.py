@@ -2077,3 +2077,44 @@ if __name__ == "__main__":
 
     # Process all generated JQL queries
     process_all_jql_queries()
+
+
+
+############### 
+
+# Ensure the key normalization is consistent across the code
+normalized_keys = {
+    'Not Feasible-Not Automated': 'not_feasible_not_automated',
+    'Feasible-Not Automated': 'feasible_not_automated',
+    'Fully Automated': 'fully_automated',
+    'Partially Automated': 'partially_automated',
+    'Automated and Not Usable': 'automated_and_not_usable',
+    'Pending Automation Analysis': 'pending_automation_analysis',
+    'Feasible-Automation In Progress': 'feasible_automation_in_progress'
+}
+
+for reason, issue_list in automation_reason_with_values.items():
+    count = len(issue_list)
+    if count > 0:
+        reason_key = normalized_keys.get(reason, reason.lower().replace(' ', '_'))
+        filename = f"{assignee}_{reason_key}_{count}.csv"
+        save_issues_to_csv(issue_list, filename)
+        email_content.append(f"{reason}: <a href='http://your-server.com/files/{filename}'>{count}</a><br>")
+        summary_counts[reason_key] = summary_counts.get(reason_key, 0) + count
+
+# Update the summary with the normalized keys
+summary = f"""
+<br><br><strong>Summary:</strong><br>
+Total issues with no automation reason: {summary_counts['no_automation_reason']}<br>
+Total fully automated issues: {summary_counts['fully_automated']}<br>
+Total partially automated issues: {summary_counts['partially_automated']}<br>
+Total automated and not usable issues: {summary_counts['automated_and_not_usable']}<br>
+Total pending automation analysis issues: {summary_counts['pending_automation_analysis']}<br>
+Total not feasible - not automated issues: {summary_counts['not_feasible_not_automated']}<br>
+Total feasible - not automated issues: {summary_counts['feasible_not_automated']}<br>
+Total feasible - automation in progress issues: {summary_counts['feasible_automation_in_progress']}<br>
+Total issues categorized by label (None): {summary_counts['labels_none']}<br>
+Total issues categorized by label (Has values): {summary_counts['labels_with_values']}<br>
+Total issues categorized by resolution (None): {summary_counts['resolution_none']}<br>
+Total issues categorized by resolution (Has values): {summary_counts['resolution_with_values']}<br>
+"""

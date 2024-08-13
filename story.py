@@ -145,7 +145,7 @@ process_all_jql_queries()
 
 
 
-................................................
+# Below code is putting the data into table instead of plain printing in above code
 
 
 
@@ -310,4 +310,65 @@ jql_queries = [
 
 # Start processing all JQL queries
 process_all_jql_queries()
+
+
+############## HTML table creation with CSS stlying
+
+def generate_html_table(issues, component_name, fields):
+    # Define the CSS styles
+    styles = """
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            color: #333333;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+            padding: 8px;
+            text-align: left;
+            border: 1px solid #dddddd;
+        }
+        td {
+            padding: 8px;
+            border: 1px solid #dddddd;
+        }
+        h3 {
+            color: #004080;
+            font-size: 18px;
+        }
+    </style>
+    """
+
+    # Include the CSS in the HTML content
+    html = f"{styles}<h3>Results for component: {component_name}</h3><table><tr>"
+
+    # Add table headers
+    table_headers = ['Serial No.', 'Story Key', 'Summary'] + fields
+    for header in table_headers:
+        html += f"<th>{header}</th>"
+    html += "</tr>"
+
+    # Add table rows
+    for i, issue in enumerate(issues, 1):
+        row = [i, issue['key'], issue['fields'].get('summary', 'N/A')]
+        for field in fields:
+            field_value = issue['fields'].get(field)
+            if isinstance(field_value, dict):
+                field_value = field_value.get('name', 'N/A')
+            elif isinstance(field_value, list):
+                field_value = ', '.join([item.get('name', item) for item in field_value])
+            row.append(field_value or 'N/A')
+
+        html += "<tr>" + "".join([f"<td>{value}</td>" for value in row]) + "</tr>"
+    
+    html += "</table><br>"
+    return html
+
 

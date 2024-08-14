@@ -1668,7 +1668,7 @@ def send_email(subject, body):
     msg['Subject'] = subject
 
     # Wrap the body with a div that applies the Arial font to all text
-    full_body = f"<div style='font-family: Arial, sans-serif;'>{body}</div>"
+    full_body = f"<div style='font-family: Arial, sans-serif; color: rebeccapurple; font-size: 10px;'>{body}</div>"
     msg.attach(MIMEText(full_body, 'html'))
 
     try:

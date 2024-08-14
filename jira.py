@@ -117,6 +117,7 @@ def print_and_save_categorized_issues(categorized_issues, field_name, default_va
 
 def process_all_jql_queries():
     folder_name = create_output_folder()  # Create output folder at the start
+    base_url = f"http://your-server.com/files/{folder_name}"  
     all_email_content = []
     summary_counts = {
         # Your summary_counts dictionary...

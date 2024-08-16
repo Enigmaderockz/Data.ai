@@ -863,7 +863,77 @@ process_all_jql_queries()
 
 
 
-#### subtasks
+#### coloring
+
+import requests
+from requests_kerberos import HTTPKerberosAuth, REQUIRED
+import concurrent.futures
+import time
+import conf  # Import the configuration file
+import logging
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+import html
+
+# Set up logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+# Jira server URL
+jira_url = 'https://your-company-jira.com'
+
+# Kerberos authentication
+kerberos_auth = HTTPKerberosAuth(mutual_authentication=REQUIRED)
+
+def fetch_all_issues(jql_query):
+    start_at = 0
+    max_results = 1000
+    all_issues = []
+    retry_attempts = 3
+    retry_delay = 5
+
+    while True:
+        params = {
+            'jql': jql_query,
+            'startAt': start_at,
+            'maxResults': max_results
+        }
+
+        for attempt in range(retry_attempts):
+            try:
+                response = requests.get(f'{jira_url}/rest/api/2/search', params=params, auth=kerberos_auth)
+
+                if response.status_code == 200:
+                    issues = response.json()['issues']
+                    all_issues.extend(issues)
+                    if len(issues) < max_results:
+                        return all_issues
+                    start_at += max_results
+                    break
+                else:
+                    logging.error(f"Failed to retrieve issues for JQL '{jql_query}': {response.status_code} - {response.text}")
+                    if response.status_code == 401:  # Unauthorized
+                        logging.warning("Authentication issue, retrying...")
+                        time.sleep(retry_delay)
+            except requests.exceptions.RequestException as e:
+                logging.error(f"Request failed: {e}")
+                time.sleep(retry_delay)
+
+        if attempt == retry_attempts - 1:
+            logging.error(f"Failed to retrieve issues for JQL '{jql_query}' after {retry_attempts} attempts.")
+            break
+
+    return all_issues
+
+# Mapping of custom field IDs to user-friendly names
+custom_field_mapping = {
+    'customfield_17201': 'QA Required?',
+    'customfield_10005': 'Sprint',
+    'customfield_10002': 'Story Points',
+    'customfield_26424': 'Requirement Status',
+    'customfield_26027': 'QA Assignee',
+    # Add more mappings if needed
+}
 
 def generate_html_table(issues, fields):
     # Table header
@@ -880,6 +950,10 @@ def generate_html_table(issues, fields):
         row_color = "#f2f2f2" if i % 2 != 0 else "#ffffff"
         table_row = f"<tr style='background-color:{row_color};'><td>{i}</td><td>{html.escape(issue['key'])}</td><td>{html.escape(issue['fields']['summary'])}</td>"
 
+        # Initialize variables to store QA Required? and Requirement Status values
+        qa_required = None
+        requirement_status = None
+
         for field in fields:
             if field == 'subtasks':
                 subtasks = issue['fields'].get('subtasks', [])
@@ -888,21 +962,32 @@ def generate_html_table(issues, fields):
             else:
                 value = issue['fields'].get(field, "")
 
-                # Handle customfield_10005 (Sprint Name)
-                if field == 'customfield_10005' and isinstance(value, list) and value:
-                    value = value[0].split("name=")[-1].split(",")[0]  # Extract name from string
+            # Handle customfield_10005 (Sprint Name)
+            if field == 'customfield_10005' and isinstance(value, list) and value:
+                value = value[0].split("name=")[-1].split(",")[0]  # Extract name from string
 
-                # Handle customfield_26424 (Status)
-                elif field == 'customfield_26424' and isinstance(value, list) and value:
-                    value = value[0].get('status', '')  # Extract status from dictionary
+            # Handle customfield_26424 (Requirement Status)
+            elif field == 'customfield_26424' and isinstance(value, list) and value:
+                value = value[0].get('status', '')  # Extract status from dictionary
 
-                elif isinstance(value, dict) and 'name' in value:
-                    value = value['name']
-                elif isinstance(value, list):
-                    value = ', '.join(str(v['name'] if isinstance(v, dict) and 'name' in v else v) for v in value)
+            elif isinstance(value, dict) and 'name' in value:
+                value = value['name']
+            elif isinstance(value, list):
+                value = ', '.join(str(v['name'] if isinstance(v, dict) and 'name' in v else v) for v in value)
+
+            # Store QA Required? and Requirement Status values for later use
+            if field == 'customfield_17201':  # QA Required?
+                qa_required = value
+            elif field == 'customfield_26424':  # Requirement Status
+                requirement_status = value
 
             # Escape the cell content to prevent HTML parsing issues
             table_row += f"<td>{html.escape(str(value))}</td>"
+
+        # Apply conditional formatting based on QA Required? and Requirement Status values
+        if qa_required and qa_required != "None" and requirement_status and requirement_status != "Ok":
+            table_row = table_row.replace(f"<td>{html.escape(str(requirement_status))}</td>",
+                                          f"<td style='background-color:#ff6666;'>{html.escape(str(requirement_status))}</td>")
 
         table_row += "</tr>"
         table_rows += table_row
@@ -956,17 +1041,17 @@ def process_all_jql_queries():
         'issuetype',
         'priority',
         'versions',
+        'customfield_17201',
         'components',
         'labels',
         'status',
         'resolution',
         'fixVersions',
-        'customfield_17201',
         'customfield_10005',
         'customfield_10002',
         'customfield_26424',
         'customfield_26027',
-        'subtasks',  # Adding subtasks to the fields list
+        'subtasks'
     ]
 
     with concurrent.futures.ThreadPoolExecutor() as executor:

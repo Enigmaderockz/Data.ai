@@ -406,3 +406,61 @@ def generate_html_table(issues, fields):
     </table>
     """
     return html_table
+
+
+### predictive JIRA complican analysis
+
+def generate_html_table(issues, fields):
+    # Table header
+    table_header = "<tr><th>Serial No</th><th>Story</th><th>Summary</th>"
+    for field in fields:
+        field_name = custom_field_mapping.get(field, field.replace('_', ' ').title())
+        table_header += f"<th>{html.escape(field_name)}</th>"
+    table_header += "</tr>"
+
+    table_rows = ""
+    for i, issue in enumerate(issues, start=1):
+        row_color = "#f2f2f2" if i % 2 != 0 else "#ffffff"
+        table_row = f"<tr style='background-color:{row_color};'><td>{i}</td><td>{html.escape(issue['key'])}</td><td>{html.escape(issue['fields']['summary'])}</td>"
+
+        qa_assignee = issue['fields'].get('customfield_26027')  # QA Assignee
+        qa_required = issue['fields'].get('customfield_17201', "")  # QA Required?
+        requirement_status = ""
+        customfield_26424_value = issue['fields'].get('customfield_26424', [])
+        if isinstance(customfield_26424_value, list) and customfield_26424_value:
+            requirement_status = customfield_26424_value[0].get('status', "")
+
+        for field in fields:
+            value = issue['fields'].get(field, "")
+
+            if field == 'customfield_10005' and isinstance(value, list) and value:
+                value = value[0].split("name=")[-1].split(",")[0]
+
+            elif field == 'customfield_26424' and isinstance(value, list) and value:
+                value = value[0].get('status', '')
+
+            elif isinstance(value, dict) and 'name' in value:
+                value = value['name']
+            elif isinstance(value, list):
+                value = ', '.join(str(v['name'] if isinstance(v, dict) and 'name' in v else v) for v in value)
+
+            cell_style = ""
+            if qa_assignee and field == 'customfield_17201' and qa_required != 'Yes':
+                cell_style = "background-color: #ffcccc;"  # Light red color for QA Required? cell
+            elif qa_assignee and field == 'customfield_26424' and requirement_status != 'Ok':
+                cell_style = "background-color: #ffcccc;"  # Light red color for Requirement Status cell
+
+            # Escape the cell content to prevent HTML parsing issues
+            table_row += f"<td style='{cell_style}'>{html.escape(str(value))}</td>"
+
+        table_row += "</tr>"
+        table_rows += table_row
+
+    html_table = f"""
+    <table border='1' cellpadding='5' cellspacing='0' style='border-collapse: collapse; width: 100%;'>
+        {table_header}
+        {table_rows}
+    </table>
+    """
+    return html_table
+

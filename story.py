@@ -1013,7 +1013,7 @@ def generate_html_table(issues, fields):
 
 ########################################################################################## final
 
-import html  # Import html module to escape HTML entities
+import html
 
 def generate_html_table(issues, fields):
     # Table header
@@ -1028,7 +1028,8 @@ def generate_html_table(issues, fields):
     for i, issue in enumerate(issues, start=1):
         # Alternate row color: light gray for odd rows, white for even rows
         row_color = "#f2f2f2" if i % 2 != 0 else "#ffffff"
-        table_row = f"<tr style='background-color:{row_color};'><td>{i}</td><td>{html.escape(issue['key'])}</td><td>{html.escape(issue['fields']['summary'])}</td>"
+        table_row = f"<tr style='background-color:{row_color};'>"
+        table_row += f"<td>{i}</td><td>{html.escape(issue['key'])}</td><td>{html.escape(issue['fields']['summary'])}</td>"
 
         qa_required = None
         requirement_status = None
@@ -1065,13 +1066,11 @@ def generate_html_table(issues, fields):
             # Apply the highlighting rules
             if field == 'customfield_26424' and requirement_status is not None:
                 if qa_required == "None":
-                    # Case where QA Required? is None
                     if requirement_status == "OK":
                         table_row += f"<td style='background-color: red;'>{cell_content}</td>"
                     else:
                         table_row += f"<td>{cell_content}</td>"
                 else:
-                    # Apply the rules based on the cleaned up QA Required? value
                     if (qa_required == "Yes" and requirement_status != "OK") or (qa_required == "No" and requirement_status == "OK"):
                         table_row += f"<td style='background-color: red;'>{cell_content}</td>"
                     else:
@@ -1082,9 +1081,15 @@ def generate_html_table(issues, fields):
         table_row += "</tr>"
         table_rows += table_row
 
-    # Add CSS for table layout consistency
+    # Add CSS for table layout consistency and ensure no merging of cells
     html_table = f"""
-    <table border='1' cellpadding='5' cellspacing='0' style='border-collapse: collapse; width: 100%;'>
+    <table border='1' cellpadding='5' cellspacing='0' style='border-collapse: collapse; width: 100%; table-layout: fixed;'>
+        <colgroup>
+            <col style="width: 5%;">
+            <col style="width: 15%;">
+            <col style="width: 30%;">
+            {"".join(['<col style="width: 10%;">' for _ in fields])}
+        </colgroup>
         {table_header}
         {table_rows}
     </table>

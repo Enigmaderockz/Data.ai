@@ -312,63 +312,76 @@ jql_queries = [
 process_all_jql_queries()
 
 
-############## HTML table creation with CSS stlying
+############## to handle specific fields
+    def generate_html_table(issues, fields):
+    table_header = "<tr><th>Serial No</th><th>Story</th><th>Summary</th>"
+    for field in fields:
+        table_header += f"<th>{field.replace('_', ' ').title()}</th>"
+    table_header += "</tr>"
 
-def generate_html_table(issues, component_name, fields):
-    # Define the CSS styles
-    styles = """
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            font-size: 14px;
-            color: #333333;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 20px;
-        }
-        th {
-            background-color: #f2f2f2;
-            font-weight: bold;
-            padding: 8px;
-            text-align: left;
-            border: 1px solid #dddddd;
-        }
-        td {
-            padding: 8px;
-            border: 1px solid #dddddd;
-        }
-        h3 {
-            color: #004080;
-            font-size: 18px;
-        }
-    </style>
-    """
-
-    # Include the CSS in the HTML content
-    html = f"{styles}<h3>Results for component: {component_name}</h3><table><tr>"
-
-    # Add table headers
-    table_headers = ['Serial No.', 'Story Key', 'Summary'] + fields
-    for header in table_headers:
-        html += f"<th>{header}</th>"
-    html += "</tr>"
-
-    # Add table rows
-    for i, issue in enumerate(issues, 1):
-        row = [i, issue['key'], issue['fields'].get('summary', 'N/A')]
+    table_rows = ""
+    for i, issue in enumerate(issues, start=1):
+        table_row = f"<tr><td>{i}</td><td>{issue['key']}</td><td>{issue['fields']['summary']}</td>"
         for field in fields:
-            field_value = issue['fields'].get(field)
-            if isinstance(field_value, dict):
-                field_value = field_value.get('name', 'N/A')
-            elif isinstance(field_value, list):
-                field_value = ', '.join([item.get('name', item) for item in field_value])
-            row.append(field_value or 'N/A')
+            value = issue['fields'].get(field, "")
 
-        html += "<tr>" + "".join([f"<td>{value}</td>" for value in row]) + "</tr>"
-    
-    html += "</table><br>"
-    return html
+            # Handle customfield_10005 (Sprint Name)
+            if field == 'customfield_10005' and isinstance(value, list) and value:
+                value = value[0].split("name=")[-1].split(",")[0]  # Extract name from string
+
+            # Handle customfield_26424 (Status)
+            elif field == 'customfield_26424' and isinstance(value, list) and value:
+                value = value[0].get('status', '')  # Extract status from dictionary
+
+            elif isinstance(value, dict) and 'name' in value:
+                value = value['name']
+            elif isinstance(value, list):
+                value = ', '.join(str(v['name'] if isinstance(v, dict) and 'name' in v else v) for v in value)
+
+            table_row += f"<td>{value}</td>"
+        table_row += "</tr>"
+        table_rows += table_row
+
+    html_table = f"<table border='1' cellpadding='5' cellspacing='0'>{table_header}{table_rows}</table>"
+    return html_table
+
+
+# rows with color
+
+def generate_html_table(issues, fields):
+    table_header = "<tr><th>Serial No</th><th>Story</th><th>Summary</th>"
+    for field in fields:
+        table_header += f"<th>{field.replace('_', ' ').title()}</th>"
+    table_header += "</tr>"
+
+    table_rows = ""
+    for i, issue in enumerate(issues, start=1):
+        # Alternate row color: light gray for odd rows, white for even rows
+        row_color = "#f2f2f2" if i % 2 != 0 else "#ffffff"
+        table_row = f"<tr style='background-color:{row_color};'><td>{i}</td><td>{issue['key']}</td><td>{issue['fields']['summary']}</td>"
+
+        for field in fields:
+            value = issue['fields'].get(field, "")
+
+            # Handle customfield_10005 (Sprint Name)
+            if field == 'customfield_10005' and isinstance(value, list) and value:
+                value = value[0].split("name=")[-1].split(",")[0]  # Extract name from string
+
+            # Handle customfield_26424 (Status)
+            elif field == 'customfield_26424' and isinstance(value, list) and value:
+                value = value[0].get('status', '')  # Extract status from dictionary
+
+            elif isinstance(value, dict) and 'name' in value:
+                value = value['name']
+            elif isinstance(value, list):
+                value = ', '.join(str(v['name'] if isinstance(v, dict) and 'name' in v else v) for v in value)
+
+            table_row += f"<td>{value}</td>"
+        table_row += "</tr>"
+        table_rows += table_row
+
+    html_table = f"<table border='1' cellpadding='5' cellspacing='0'>{table_header}{table_rows}</table>"
+    return html_table
+
 
 

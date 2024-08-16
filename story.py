@@ -932,3 +932,82 @@ def generate_html_table(issues, fields):
     </table>
     """
     return html_table
+
+
+..........................
+def generate_html_table(issues, fields):
+    # Table header
+    table_header = "<tr><th>Serial No</th><th>Story</th><th>Summary</th>"
+    for field in fields:
+        # Replace custom field IDs with user-friendly names if available
+        field_name = custom_field_mapping.get(field, field.replace('_', ' ').title())
+        table_header += f"<th>{html.escape(field_name)}</th>"
+    table_header += "</tr>"
+
+    table_rows = ""
+    for i, issue in enumerate(issues, start=1):
+        # Alternate row color: light gray for odd rows, white for even rows
+        row_color = "#f2f2f2" if i % 2 != 0 else "#ffffff"
+        table_row = f"<tr style='background-color:{row_color};'><td>{i}</td><td>{html.escape(issue['key'])}</td><td>{html.escape(issue['fields']['summary'])}</td>"
+
+        qa_required = None
+        requirement_status = None
+
+        for field in fields:
+            if field == 'subtasks':
+                subtasks = issue['fields'].get('subtasks', [])
+                subtask_keys = [subtask['key'] for subtask in subtasks]
+                value = ', '.join(subtask_keys)
+            else:
+                value = issue['fields'].get(field, "")
+
+            # Handle customfield_10005 (Sprint Name)
+            if field == 'customfield_10005' and isinstance(value, list) and value:
+                value = value[0].split("name=")[-1].split(",")[0]  # Extract name from string
+
+            # Handle customfield_26424 (Requirement Status)
+            elif field == 'customfield_26424' and isinstance(value, list) and value:
+                value = value[0].get('status', '')  # Extract status from dictionary
+                requirement_status = value  # Capture Requirement Status for later use
+
+            elif isinstance(value, dict) and 'name' in value:
+                value = value['name']
+            elif isinstance(value, list):
+                value = ', '.join(str(v['name'] if isinstance(v, dict) and 'name' in v else v) for v in value)
+
+            # Capture QA Required? for logic check and clean it up
+            if field == 'customfield_17201':
+                qa_required = str(value).replace("!", "").strip()  # Remove '!' and trim whitespace
+
+            # Escape the cell content to prevent HTML parsing issues
+            cell_content = html.escape(str(value))
+
+            # Apply the highlighting rules
+            if field == 'customfield_26424' and requirement_status is not None:
+                if qa_required is None:
+                    # Case where QA Required? is None
+                    if requirement_status == "OK":
+                        table_row += f"<td style='color: red;'>{cell_content}</td>"
+                    else:
+                        table_row += f"<td>{cell_content}</td>"
+                else:
+                    # Apply the rules based on the cleaned up QA Required? value
+                    if (qa_required == "Yes" and requirement_status != "OK") or (qa_required == "No" and requirement_status == "OK"):
+                        table_row += f"<td style='color: red;'>{cell_content}</td>"
+                    else:
+                        table_row += f"<td>{cell_content}</td>"
+            else:
+                table_row += f"<td>{cell_content}</td>"
+
+        table_row += "</tr>"
+        table_rows += table_row
+
+    # Add CSS for table layout consistency
+    html_table = f"""
+    <table border='1' cellpadding='5' cellspacing='0' style='border-collapse: collapse; width: 100%;'>
+        {table_header}
+        {table_rows}
+    </table>
+    """
+    return html_table
+

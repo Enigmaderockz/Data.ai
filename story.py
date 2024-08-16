@@ -1087,7 +1087,7 @@ def generate_html_table(issues, fields):
         <colgroup>
             <col style="width: 5%;">
             <col style="width: 15%;">
-            <col style="width: 30%;">
+            <col style="width: 20%;">
             {"".join(['<col style="width: 10%;">' for _ in fields])}
         </colgroup>
         {table_header}

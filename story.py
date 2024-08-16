@@ -348,17 +348,19 @@ process_all_jql_queries()
 
 # rows with color
 
+import html
+
 def generate_html_table(issues, fields):
     table_header = "<tr><th>Serial No</th><th>Story</th><th>Summary</th>"
     for field in fields:
-        table_header += f"<th>{field.replace('_', ' ').title()}</th>"
+        table_header += f"<th>{html.escape(field.replace('_', ' ').title())}</th>"
     table_header += "</tr>"
 
     table_rows = ""
     for i, issue in enumerate(issues, start=1):
         # Alternate row color: light gray for odd rows, white for even rows
         row_color = "#f2f2f2" if i % 2 != 0 else "#ffffff"
-        table_row = f"<tr style='background-color:{row_color};'><td>{i}</td><td>{issue['key']}</td><td>{issue['fields']['summary']}</td>"
+        table_row = f"<tr style='background-color:{row_color};'><td>{i}</td><td>{html.escape(issue['key'])}</td><td>{html.escape(issue['fields']['summary'])}</td>"
 
         for field in fields:
             value = issue['fields'].get(field, "")
@@ -376,12 +378,17 @@ def generate_html_table(issues, fields):
             elif isinstance(value, list):
                 value = ', '.join(str(v['name'] if isinstance(v, dict) and 'name' in v else v) for v in value)
 
-            table_row += f"<td>{value}</td>"
+            # Escape the cell content to prevent HTML parsing issues
+            table_row += f"<td>{html.escape(str(value))}</td>"
+
         table_row += "</tr>"
         table_rows += table_row
 
-    html_table = f"<table border='1' cellpadding='5' cellspacing='0'>{table_header}{table_rows}</table>"
+    # Add CSS for table layout consistency
+    html_table = f"""
+    <table border='1' cellpadding='5' cellspacing='0' style='border-collapse: collapse; width: 100%;'>
+        {table_header}
+        {table_rows}
+    </table>
+    """
     return html_table
-
-
-

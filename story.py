@@ -350,10 +350,24 @@ process_all_jql_queries()
 
 import html
 
+# Mapping of custom field IDs to user-friendly names
+custom_field_mapping = {
+    'customfield_10021': 'QA Required?',
+    'customfield_10020': 'Sprint',
+    'customfield_10002': 'Story Points',
+    'customfield_10010': 'Requirement Status',
+    # Add more mappings if needed
+}
+
+
+
 def generate_html_table(issues, fields):
+    # Table header
     table_header = "<tr><th>Serial No</th><th>Story</th><th>Summary</th>"
     for field in fields:
-        table_header += f"<th>{html.escape(field.replace('_', ' ').title())}</th>"
+        # Replace custom field IDs with user-friendly names if available
+        field_name = custom_field_mapping.get(field, field.replace('_', ' ').title())
+        table_header += f"<th>{html.escape(field_name)}</th>"
     table_header += "</tr>"
 
     table_rows = ""

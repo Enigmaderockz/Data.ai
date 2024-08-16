@@ -869,11 +869,12 @@ import requests
 from requests_kerberos import HTTPKerberosAuth, REQUIRED
 import concurrent.futures
 import time
-import html
+import conf  # Import the configuration file
 import logging
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+import html
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -884,26 +885,59 @@ jira_url = 'https://your-company-jira.com'
 # Kerberos authentication
 kerberos_auth = HTTPKerberosAuth(mutual_authentication=REQUIRED)
 
-# Function to fetch a single subtask
-def fetch_subtask(subtask_key):
-    url = f'{jira_url}/rest/api/2/issue/{subtask_key}'
-    try:
-        response = requests.get(url, auth=kerberos_auth)
-        if response.status_code == 200:
-            return response.json()
-        else:
-            logging.error(f"Failed to retrieve subtask '{subtask_key}': {response.status_code} - {response.text}")
-    except requests.exceptions.RequestException as e:
-        logging.error(f"Request failed: {e}")
-    return None
+def fetch_all_issues(jql_query):
+    start_at = 0
+    max_results = 1000
+    all_issues = []
+    retry_attempts = 3
+    retry_delay = 5
 
-# Function to fetch subtasks for a list of keys
-def fetch_subtasks(subtask_keys):
+    while True:
+        params = {
+            'jql': jql_query,
+            'startAt': start_at,
+            'maxResults': max_results
+        }
+
+        for attempt in range(retry_attempts):
+            try:
+                response = requests.get(f'{jira_url}/rest/api/2/search', params=params, auth=kerberos_auth)
+
+                if response.status_code == 200:
+                    issues = response.json()['issues']
+                    all_issues.extend(issues)
+                    if len(issues) < max_results:
+                        return all_issues
+                    start_at += max_results
+                    break
+                else:
+                    logging.error(f"Failed to retrieve issues for JQL '{jql_query}': {response.status_code} - {response.text}")
+                    if response.status_code == 401:  # Unauthorized
+                        logging.warning("Authentication issue, retrying...")
+                        time.sleep(retry_delay)
+            except requests.exceptions.RequestException as e:
+                logging.error(f"Request failed: {e}")
+                time.sleep(retry_delay)
+
+        if attempt == retry_attempts - 1:
+            logging.error(f"Failed to retrieve issues for JQL '{jql_query}' after {retry_attempts} attempts.")
+            break
+
+    return all_issues
+
+def fetch_subtasks(issue_keys):
     subtasks = []
-    for key in subtask_keys:
-        subtask = fetch_subtask(key)
-        if subtask:
-            subtasks.append(subtask)
+    for key in issue_keys:
+        url = f'{jira_url}/rest/api/2/issue/{key}/subtask'
+        try:
+            response = requests.get(url, auth=kerberos_auth)
+            if response.status_code == 200:
+                issue_data = response.json()
+                subtasks.extend(issue_data.get('fields', {}).get('subtasks', []))
+            else:
+                logging.error(f"Failed to retrieve subtasks for issue '{key}': {response.status_code} - {response.text}")
+        except requests.exceptions.RequestException as e:
+            logging.error(f"Request failed: {e}")
     return subtasks
 
 # Mapping of custom field IDs to user-friendly names
@@ -916,44 +950,44 @@ custom_field_mapping = {
     # Add more mappings if needed
 }
 
-# Modified function to generate the HTML table with subtasks
 def generate_html_table(issues, fields):
     # Table header
     table_header = "<tr><th>Serial No</th><th>Story</th><th>Summary</th>"
     for field in fields:
+        # Replace custom field IDs with user-friendly names if available
         field_name = custom_field_mapping.get(field, field.replace('_', ' ').title())
         table_header += f"<th>{html.escape(field_name)}</th>"
-    table_header += "<th>Subtasks</th></tr>"
+    table_header += "</tr>"
 
     table_rows = ""
     for i, issue in enumerate(issues, start=1):
+        # Alternate row color: light gray for odd rows, white for even rows
         row_color = "#f2f2f2" if i % 2 != 0 else "#ffffff"
         table_row = f"<tr style='background-color:{row_color};'><td>{i}</td><td>{html.escape(issue['key'])}</td><td>{html.escape(issue['fields']['summary'])}</td>"
 
         for field in fields:
             value = issue['fields'].get(field, "")
+
+            # Handle customfield_10005 (Sprint Name)
             if field == 'customfield_10005' and isinstance(value, list) and value:
-                value = value[0].split("name=")[-1].split(",")[0]
+                value = value[0].split("name=")[-1].split(",")[0]  # Extract name from string
+
+            # Handle customfield_26424 (Status)
             elif field == 'customfield_26424' and isinstance(value, list) and value:
-                value = value[0].get('status', '')
+                value = value[0].get('status', '')  # Extract status from dictionary
+
             elif isinstance(value, dict) and 'name' in value:
                 value = value['name']
             elif isinstance(value, list):
                 value = ', '.join(str(v['name'] if isinstance(v, dict) and 'name' in v else v) for v in value)
-            table_row += f"<td>{html.escape(str(value))}</td>"
 
-        # Fetch subtasks and add them to the table row
-        subtask_keys = [subtask['key'] for subtask in issue['fields'].get('subtasks', [])]
-        if subtask_keys:
-            subtasks = fetch_subtasks(subtask_keys)
-            subtask_summaries = ', '.join([html.escape(subtask['fields']['summary']) for subtask in subtasks])
-            table_row += f"<td>{subtask_summaries}</td>"
-        else:
-            table_row += "<td>No Subtasks</td>"
+            # Escape the cell content to prevent HTML parsing issues
+            table_row += f"<td>{html.escape(str(value))}</td>"
 
         table_row += "</tr>"
         table_rows += table_row
 
+    # Add CSS for table layout consistency
     html_table = f"""
     <table border='1' cellpadding='5' cellspacing='0' style='border-collapse: collapse; width: 100%;'>
         {table_header}
@@ -971,6 +1005,13 @@ def process_issues(jql_query, all_email_content, fields):
     email_content = f"<h2>Results for component: {component_name}</h2><br>"
 
     email_content += generate_html_table(issues, fields)
+
+    # Fetch subtasks for the main issues
+    issue_keys = [issue['key'] for issue in issues]
+    subtasks = fetch_subtasks(issue_keys)
+    if subtasks:
+        email_content += "<h3>Subtasks</h3>"
+        email_content += generate_html_table(subtasks, fields)
 
     all_email_content.append(email_content)
 
@@ -1030,7 +1071,7 @@ def process_all_jql_queries():
                         break
                     except Exception as e:
                         logging.error(f"Retry {attempt + 1} failed for JQL '{jql_query}': {e}")
-                        time.sleep(5)
+                        time.sleep(5)  # Wait before retrying
 
     combined_email_content = "<br><br>".join(all_email_content)
     send_email("Jira Report for All Components", combined_email_content)

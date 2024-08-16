@@ -865,76 +865,6 @@ process_all_jql_queries()
 
 #### coloring
 
-import requests
-from requests_kerberos import HTTPKerberosAuth, REQUIRED
-import concurrent.futures
-import time
-import conf  # Import the configuration file
-import logging
-import smtplib
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-import html
-
-# Set up logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-
-# Jira server URL
-jira_url = 'https://your-company-jira.com'
-
-# Kerberos authentication
-kerberos_auth = HTTPKerberosAuth(mutual_authentication=REQUIRED)
-
-def fetch_all_issues(jql_query):
-    start_at = 0
-    max_results = 1000
-    all_issues = []
-    retry_attempts = 3
-    retry_delay = 5
-
-    while True:
-        params = {
-            'jql': jql_query,
-            'startAt': start_at,
-            'maxResults': max_results
-        }
-
-        for attempt in range(retry_attempts):
-            try:
-                response = requests.get(f'{jira_url}/rest/api/2/search', params=params, auth=kerberos_auth)
-
-                if response.status_code == 200:
-                    issues = response.json()['issues']
-                    all_issues.extend(issues)
-                    if len(issues) < max_results:
-                        return all_issues
-                    start_at += max_results
-                    break
-                else:
-                    logging.error(f"Failed to retrieve issues for JQL '{jql_query}': {response.status_code} - {response.text}")
-                    if response.status_code == 401:  # Unauthorized
-                        logging.warning("Authentication issue, retrying...")
-                        time.sleep(retry_delay)
-            except requests.exceptions.RequestException as e:
-                logging.error(f"Request failed: {e}")
-                time.sleep(retry_delay)
-
-        if attempt == retry_attempts - 1:
-            logging.error(f"Failed to retrieve issues for JQL '{jql_query}' after {retry_attempts} attempts.")
-            break
-
-    return all_issues
-
-# Mapping of custom field IDs to user-friendly names
-custom_field_mapping = {
-    'customfield_17201': 'QA Required?',
-    'customfield_10005': 'Sprint',
-    'customfield_10002': 'Story Points',
-    'customfield_26424': 'Requirement Status',
-    'customfield_26027': 'QA Assignee',
-    # Add more mappings if needed
-}
-
 def generate_html_table(issues, fields):
     # Table header
     table_header = "<tr><th>Serial No</th><th>Story</th><th>Summary</th>"
@@ -950,7 +880,6 @@ def generate_html_table(issues, fields):
         row_color = "#f2f2f2" if i % 2 != 0 else "#ffffff"
         table_row = f"<tr style='background-color:{row_color};'><td>{i}</td><td>{html.escape(issue['key'])}</td><td>{html.escape(issue['fields']['summary'])}</td>"
 
-        # Initialize variables to store QA Required? and Requirement Status values
         qa_required = None
         requirement_status = None
 
@@ -969,25 +898,28 @@ def generate_html_table(issues, fields):
             # Handle customfield_26424 (Requirement Status)
             elif field == 'customfield_26424' and isinstance(value, list) and value:
                 value = value[0].get('status', '')  # Extract status from dictionary
+                requirement_status = value  # Capture Requirement Status for later use
 
             elif isinstance(value, dict) and 'name' in value:
                 value = value['name']
             elif isinstance(value, list):
                 value = ', '.join(str(v['name'] if isinstance(v, dict) and 'name' in v else v) for v in value)
 
-            # Store QA Required? and Requirement Status values for later use
-            if field == 'customfield_17201':  # QA Required?
+            # Capture QA Required? for logic check
+            if field == 'customfield_17201':
                 qa_required = value
-            elif field == 'customfield_26424':  # Requirement Status
-                requirement_status = value
 
             # Escape the cell content to prevent HTML parsing issues
-            table_row += f"<td>{html.escape(str(value))}</td>"
+            cell_content = html.escape(str(value))
 
-        # Apply conditional formatting based on QA Required? and Requirement Status values
-        if qa_required and qa_required != "None" and requirement_status and requirement_status != "Ok":
-            table_row = table_row.replace(f"<td>{html.escape(str(requirement_status))}</td>",
-                                          f"<td style='background-color:#ff6666;'>{html.escape(str(requirement_status))}</td>")
+            # Apply the highlighting rules
+            if field == 'customfield_26424' and requirement_status is not None and qa_required is not None:
+                if (qa_required == "Yes" and requirement_status != "OK") or (qa_required == "No" and requirement_status == "OK"):
+                    table_row += f"<td style='color: red;'>{cell_content}</td>"
+                else:
+                    table_row += f"<td>{cell_content}</td>"
+            else:
+                table_row += f"<td>{cell_content}</td>"
 
         table_row += "</tr>"
         table_rows += table_row
@@ -1000,86 +932,3 @@ def generate_html_table(issues, fields):
     </table>
     """
     return html_table
-
-def process_issues(jql_query, all_email_content, fields):
-    issues = fetch_all_issues(jql_query)
-    if not issues:
-        return
-
-    component_name = jql_query.split('component = ')[1].split()[0].replace('"', '')
-    email_content = f"<h2>Results for component: {component_name}</h2><br>"
-
-    email_content += generate_html_table(issues, fields)
-
-    all_email_content.append(email_content)
-
-def send_email(subject, body):
-    sender_email = "your_email@example.com"
-    recipient_email = "recipient@example.com"
-
-    msg = MIMEMultipart()
-    msg['From'] = sender_email
-    msg['To'] = recipient_email
-    msg['Subject'] = subject
-
-    msg.attach(MIMEText(body, 'html'))
-
-    try:
-        server = smtplib.SMTP('smtp.example.com', 587)
-        server.starttls()
-        server.login(sender_email, "your_password")
-        server.sendmail(sender_email, recipient_email, msg.as_string())
-        server.quit()
-        logging.info(f"Email sent to {recipient_email}")
-    except Exception as e:
-        logging.error(f"Failed to send email: {e}")
-
-def process_all_jql_queries():
-    all_email_content = []
-
-    fields = [
-        'issuetype',
-        'priority',
-        'versions',
-        'customfield_17201',
-        'components',
-        'labels',
-        'status',
-        'resolution',
-        'fixVersions',
-        'customfield_10005',
-        'customfield_10002',
-        'customfield_26424',
-        'customfield_26027',
-        'subtasks'
-    ]
-
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        futures = {executor.submit(process_issues, jql_query, all_email_content, fields): jql_query for jql_query in jql_queries}
-        for future in concurrent.futures.as_completed(futures):
-            jql_query = futures[future]
-            try:
-                future.result()
-            except Exception as e:
-                logging.error(f"Error processing JQL '{jql_query}': {e}")
-                retry_attempts = 3
-                for attempt in range(retry_attempts):
-                    logging.info(f"Retrying JQL '{jql_query}' (Attempt {attempt + 1}/{retry_attempts})")
-                    try:
-                        process_issues(jql_query, all_email_content, fields)
-                        break
-                    except Exception as e:
-                        logging.error(f"Retry {attempt + 1} failed for JQL '{jql_query}': {e}")
-                        time.sleep(5)  # Wait before retrying
-
-    combined_email_content = "<br><br>".join(all_email_content)
-    send_email("Jira Report for All Components", combined_email_content)
-
-# Combine components from conf.py into jql_queries
-jql_queries = [
-    f'created >= "2024-07-31" AND created < "2024-08-01" AND component = "{component}"' 
-    for component in (conf.components + conf.components1)
-]
-
-# Start processing all JQL queries
-process_all_jql_queries()

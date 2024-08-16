@@ -680,3 +680,186 @@ def process_all_jql_queries():
     combined_email_content = "<br><br>".join(all_email_content)
 
 
+########################33 subtasks fetch
+
+import requests
+from requests_kerberos import HTTPKerberosAuth, REQUIRED
+import concurrent.futures
+import time
+import html
+import logging
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+
+# Set up logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+# Jira server URL
+jira_url = 'https://your-company-jira.com'
+
+# Kerberos authentication
+kerberos_auth = HTTPKerberosAuth(mutual_authentication=REQUIRED)
+
+# Function to fetch a single subtask
+def fetch_subtask(subtask_key):
+    url = f'{jira_url}/rest/api/2/issue/{subtask_key}'
+    try:
+        response = requests.get(url, auth=kerberos_auth)
+        if response.status_code == 200:
+            return response.json()
+        else:
+            logging.error(f"Failed to retrieve subtask '{subtask_key}': {response.status_code} - {response.text}")
+    except requests.exceptions.RequestException as e:
+        logging.error(f"Request failed: {e}")
+    return None
+
+# Function to fetch subtasks for a list of keys
+def fetch_subtasks(subtask_keys):
+    subtasks = []
+    for key in subtask_keys:
+        subtask = fetch_subtask(key)
+        if subtask:
+            subtasks.append(subtask)
+    return subtasks
+
+# Mapping of custom field IDs to user-friendly names
+custom_field_mapping = {
+    'customfield_17201': 'QA Required?',
+    'customfield_10005': 'Sprint',
+    'customfield_10002': 'Story Points',
+    'customfield_26424': 'Requirement Status',
+    'customfield_26027': 'QA Assignee',
+    # Add more mappings if needed
+}
+
+# Modified function to generate the HTML table with subtasks
+def generate_html_table(issues, fields):
+    # Table header
+    table_header = "<tr><th>Serial No</th><th>Story</th><th>Summary</th>"
+    for field in fields:
+        field_name = custom_field_mapping.get(field, field.replace('_', ' ').title())
+        table_header += f"<th>{html.escape(field_name)}</th>"
+    table_header += "<th>Subtasks</th></tr>"
+
+    table_rows = ""
+    for i, issue in enumerate(issues, start=1):
+        row_color = "#f2f2f2" if i % 2 != 0 else "#ffffff"
+        table_row = f"<tr style='background-color:{row_color};'><td>{i}</td><td>{html.escape(issue['key'])}</td><td>{html.escape(issue['fields']['summary'])}</td>"
+
+        for field in fields:
+            value = issue['fields'].get(field, "")
+            if field == 'customfield_10005' and isinstance(value, list) and value:
+                value = value[0].split("name=")[-1].split(",")[0]
+            elif field == 'customfield_26424' and isinstance(value, list) and value:
+                value = value[0].get('status', '')
+            elif isinstance(value, dict) and 'name' in value:
+                value = value['name']
+            elif isinstance(value, list):
+                value = ', '.join(str(v['name'] if isinstance(v, dict) and 'name' in v else v) for v in value)
+            table_row += f"<td>{html.escape(str(value))}</td>"
+
+        # Fetch subtasks and add them to the table row
+        subtask_keys = [subtask['key'] for subtask in issue['fields'].get('subtasks', [])]
+        if subtask_keys:
+            subtasks = fetch_subtasks(subtask_keys)
+            subtask_summaries = ', '.join([html.escape(subtask['fields']['summary']) for subtask in subtasks])
+            table_row += f"<td>{subtask_summaries}</td>"
+        else:
+            table_row += "<td>No Subtasks</td>"
+
+        table_row += "</tr>"
+        table_rows += table_row
+
+    html_table = f"""
+    <table border='1' cellpadding='5' cellspacing='0' style='border-collapse: collapse; width: 100%;'>
+        {table_header}
+        {table_rows}
+    </table>
+    """
+    return html_table
+
+def process_issues(jql_query, all_email_content, fields):
+    issues = fetch_all_issues(jql_query)
+    if not issues:
+        return
+
+    component_name = jql_query.split('component = ')[1].split()[0].replace('"', '')
+    email_content = f"<h2>Results for component: {component_name}</h2><br>"
+
+    email_content += generate_html_table(issues, fields)
+
+    all_email_content.append(email_content)
+
+def send_email(subject, body):
+    sender_email = "your_email@example.com"
+    recipient_email = "recipient@example.com"
+
+    msg = MIMEMultipart()
+    msg['From'] = sender_email
+    msg['To'] = recipient_email
+    msg['Subject'] = subject
+
+    msg.attach(MIMEText(body, 'html'))
+
+    try:
+        server = smtplib.SMTP('smtp.example.com', 587)
+        server.starttls()
+        server.login(sender_email, "your_password")
+        server.sendmail(sender_email, recipient_email, msg.as_string())
+        server.quit()
+        logging.info(f"Email sent to {recipient_email}")
+    except Exception as e:
+        logging.error(f"Failed to send email: {e}")
+
+def process_all_jql_queries():
+    all_email_content = []
+
+    fields = [
+        'issuetype',
+        'priority',
+        'versions',
+        'components',
+        'labels',
+        'status',
+        'resolution',
+        'fixVersions',
+        'customfield_17201',
+        'customfield_10005',
+        'customfield_10002',
+        'customfield_26424',
+        'customfield_26027',
+    ]
+
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        futures = {executor.submit(process_issues, jql_query, all_email_content, fields): jql_query for jql_query in jql_queries}
+        for future in concurrent.futures.as_completed(futures):
+            jql_query = futures[future]
+            try:
+                future.result()
+            except Exception as e:
+                logging.error(f"Error processing JQL '{jql_query}': {e}")
+                retry_attempts = 3
+                for attempt in range(retry_attempts):
+                    logging.info(f"Retrying JQL '{jql_query}' (Attempt {attempt + 1}/{retry_attempts})")
+                    try:
+                        process_issues(jql_query, all_email_content, fields)
+                        break
+                    except Exception as e:
+                        logging.error(f"Retry {attempt + 1} failed for JQL '{jql_query}': {e}")
+                        time.sleep(5)
+
+    combined_email_content = "<br><br>".join(all_email_content)
+    send_email("Jira Report for All Components", combined_email_content)
+
+# Combine components from conf.py into jql_queries
+jql_queries = [
+    f'created >= "2024-07-31" AND created < "2024-08-01" AND component = "{component}"' 
+    for component in (conf.components + conf.components1)
+]
+
+# Start processing all JQL queries
+process_all_jql_queries()
+
+
+

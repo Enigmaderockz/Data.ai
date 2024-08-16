@@ -1024,15 +1024,21 @@ def generate_html_table(issues, fields):
         table_header += f"<th>{html.escape(field_name)}</th>"
     table_header += "</tr>"
 
+    # Define column widths for fixed table layout
+    colgroup = """
+    <colgroup>
+        <col style="width: 5%;">
+        <col style="width: 15%;">
+        <col style="width: 20%;">
+        {col_widths}
+    </colgroup>
+    """.format(col_widths="".join(['<col style="width: 10%;">' for _ in fields]))
+
     table_rows = ""
     for i, issue in enumerate(issues, start=1):
         # Alternate row color: light gray for odd rows, white for even rows
         row_color = "#f2f2f2" if i % 2 != 0 else "#ffffff"
-        table_row = f"<tr style='background-color:{row_color};'>"
-        table_row += f"<td>{i}</td><td>{html.escape(issue['key'])}</td><td>{html.escape(issue['fields']['summary'])}</td>"
-
-        qa_required = None
-        requirement_status = None
+        table_row = f"<tr style='background-color:{row_color};'><td>{i}</td><td>{html.escape(issue['key'])}</td><td>{html.escape(issue['fields']['summary'])}</td>"
 
         for field in fields:
             if field == 'subtasks':
@@ -1046,50 +1052,33 @@ def generate_html_table(issues, fields):
             if field == 'customfield_10005' and isinstance(value, list) and value:
                 value = value[0].split("name=")[-1].split(",")[0]  # Extract name from string
 
-            # Handle customfield_26424 (Requirement Status)
+            # Handle customfield_26424 (Status)
             elif field == 'customfield_26424' and isinstance(value, list) and value:
                 value = value[0].get('status', '')  # Extract status from dictionary
-                requirement_status = value  # Capture Requirement Status for later use
 
             elif isinstance(value, dict) and 'name' in value:
                 value = value['name']
             elif isinstance(value, list):
                 value = ', '.join(str(v['name'] if isinstance(v, dict) and 'name' in v else v) for v in value)
 
-            # Capture QA Required? for logic check and clean it up
-            if field == 'customfield_17201':
-                qa_required = str(value).replace("!", "").strip()  # Remove '!' and trim whitespace
+            # Replace None with an empty string to prevent merging issues
+            if value is None:
+                value = ""
+
+            # Replace any "!" character in the value
+            if isinstance(value, str):
+                value = value.replace("!", "")
 
             # Escape the cell content to prevent HTML parsing issues
-            cell_content = html.escape(str(value))
-
-            # Apply the highlighting rules
-            if field == 'customfield_26424' and requirement_status is not None:
-                if qa_required == "None":
-                    if requirement_status == "OK":
-                        table_row += f"<td style='background-color: red;'>{cell_content}</td>"
-                    else:
-                        table_row += f"<td>{cell_content}</td>"
-                else:
-                    if (qa_required == "Yes" and requirement_status != "OK") or (qa_required == "No" and requirement_status == "OK"):
-                        table_row += f"<td style='background-color: red;'>{cell_content}</td>"
-                    else:
-                        table_row += f"<td>{cell_content}</td>"
-            else:
-                table_row += f"<td>{cell_content}</td>"
+            table_row += f"<td>{html.escape(str(value))}</td>"
 
         table_row += "</tr>"
         table_rows += table_row
 
-    # Add CSS for table layout consistency and ensure no merging of cells
+    # Add CSS for table layout consistency
     html_table = f"""
     <table border='1' cellpadding='5' cellspacing='0' style='border-collapse: collapse; width: 100%; table-layout: fixed;'>
-        <colgroup>
-            <col style="width: 5%;">
-            <col style="width: 15%;">
-            <col style="width: 20%;">
-            {"".join(['<col style="width: 10%;">' for _ in fields])}
-        </colgroup>
+        {colgroup}
         {table_header}
         {table_rows}
     </table>

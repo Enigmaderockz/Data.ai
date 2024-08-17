@@ -1194,24 +1194,13 @@ def generate_html_table(issues, fields):
                 value = ""
 
             # Specific handling for known custom fields
-            if field == 'customfield_10005' and isinstance(value, list) and value:
-                value = value[0].split("name=")[-1].split(",")[0]
-            elif field == 'customfield_26424' and isinstance(value, list) and value:
-                value = value[0].get('status', '')
-
-            # Handle dictionaries
-            elif isinstance(value, dict):
-                value = value.get('displayName') or value.get('name') or value.get('value') or ""
-
-            # Convert lists to a string of comma-separated values
-            elif isinstance(value, list):
-                value = ', '.join(
-                    str(v['name']) if isinstance(v, dict) and 'name' in v else str(v)
-                    for v in value
-                )
-
-            # Convert value to string and remove "!" if present
-            value = str(value).replace("!", "")
+            if field == 'customfield_10005':
+                value = handle_customfield_10005(value)
+            elif field == 'customfield_26424':
+                value = handle_customfield_26424(value)
+            else:
+                # Handle other potential dictionary or list values
+                value = handle_generic_field(value)
 
             # Escape value for HTML
             value = html.escape(value)
@@ -1224,3 +1213,25 @@ def generate_html_table(issues, fields):
 
     table += "</table>"
     return table
+
+def handle_customfield_10005(value):
+    if isinstance(value, list) and value:
+        # Extract the name from the list of dictionaries
+        return ', '.join(v.split("name=")[-1].split(",")[0] for v in value if "name=" in v)
+    return str(value)
+
+def handle_customfield_26424(value):
+    if isinstance(value, list) and value:
+        # Extract the status from the list of dictionaries
+        return ', '.join(v.get('status', '') for v in value)
+    return str(value)
+
+def handle_generic_field(value):
+    if isinstance(value, dict):
+        return value.get('displayName') or value.get('name') or value.get('value') or ""
+    elif isinstance(value, list):
+        return ', '.join(
+            str(v['name']) if isinstance(v, dict) and 'name' in v else str(v)
+            for v in value
+        )
+    return str(value)

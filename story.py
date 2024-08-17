@@ -1084,3 +1084,82 @@ def generate_html_table(issues, fields):
     </table>
     """
     return html_table
+
+
+##########################33 try this
+
+import html
+
+def generate_html_table(issues, fields):
+    # Table header
+    table_header = "<tr><th>Serial No</th><th>Story</th><th>Summary</th>"
+    for field in fields:
+        # Replace custom field IDs with user-friendly names if available
+        field_name = custom_field_mapping.get(field, field.replace('_', ' ').title())
+        table_header += f"<th>{html.escape(field_name)}</th>"
+    table_header += "</tr>"
+
+    # Define column widths for fixed table layout
+    colgroup = """
+    <colgroup>
+        <col style="width: 5%;">
+        <col style="width: 15%;">
+        <col style="width: 20%;">
+        {col_widths}
+    </colgroup>
+    """.format(col_widths="".join(['<col style="width: 10%;">' for _ in fields]))
+
+    table_rows = ""
+    for i, issue in enumerate(issues, start=1):
+        # Alternate row color: light gray for odd rows, white for even rows
+        row_color = "#f2f2f2" if i % 2 != 0 else "#ffffff"
+        table_row = f"<tr style='background-color:{row_color};'><td>{i}</td><td>{html.escape(issue['key'])}</td><td>{html.escape(issue['fields']['summary'])}</td>"
+
+        for field in fields:
+            value = issue['fields'].get(field, "")
+
+            # Ensure all values are strings, even if they're empty or None
+            if value is None:
+                value = ""
+            elif isinstance(value, dict):
+                value = value.get('name', str(value))
+            elif isinstance(value, list):
+                value = ', '.join(
+                    str(v['name'] if isinstance(v, dict) and 'name' in v else v) for v in value
+                )
+            else:
+                value = str(value)
+
+            # Special handling for subtasks
+            if field == 'subtasks':
+                subtasks = issue['fields'].get('subtasks', [])
+                subtask_keys = [subtask['key'] for subtask in subtasks]
+                value = ', '.join(subtask_keys)
+
+            # Handle customfield_10005 (Sprint Name)
+            if field == 'customfield_10005' and isinstance(value, list) and value:
+                value = value[0].split("name=")[-1].split(",")[0]  # Extract name from string
+
+            # Handle customfield_26424 (Requirement Status)
+            if field == 'customfield_26424' and isinstance(value, list) and value:
+                value = value[0].get('status', '')  # Extract status from dictionary
+
+            # Replace any "!" character in the value
+            value = value.replace("!", "")
+
+            # Escape the cell content to prevent HTML parsing issues
+            table_row += f"<td>{html.escape(value)}</td>"
+
+        table_row += "</tr>"
+        table_rows += table_row
+
+    # Combine header, rows, and column styles into the final table HTML
+    html_table = f"""
+    <table border='1' cellpadding='5' cellspacing='0' style='border-collapse: collapse; width: 100%; table-layout: fixed;'>
+        {colgroup}
+        {table_header}
+        {table_rows}
+    </table>
+    """
+    return html_table
+

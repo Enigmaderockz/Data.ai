@@ -1255,3 +1255,13 @@ def generate_html_table(issues, fields):
     </table>
     """
     return html_table
+
+
+
+# Conditional styling and comments
+            if (qa_required == "Yes" and requirement_status != "OK") or (qa_required == "No" and requirement_status == "OK"):
+                cell_style = "color: red; font-weight: bold;"
+                cell_comment = "Check QA and Requirement Status"
+                table_row += f"<td style='{cell_style}' title='{cell_comment}'>{html.escape(str(value))}</td>"
+            else:
+                table_row += f"<td>{html.escape(str(value))}</td>"

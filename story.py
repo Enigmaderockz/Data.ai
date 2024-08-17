@@ -1088,8 +1088,6 @@ def generate_html_table(issues, fields):
 
 ##########################33 try this
 
-import html
-
 def generate_html_table(issues, fields):
     # Table header
     table_header = "<tr><th>Serial No</th><th>Story</th><th>Summary</th>"
@@ -1118,34 +1116,41 @@ def generate_html_table(issues, fields):
         for field in fields:
             value = issue['fields'].get(field, "")
 
-            # Ensure all values are strings, even if they're empty or None
-            if value is None:
-                value = ""
-            elif isinstance(value, dict):
-                value = value.get('name', str(value))
-            elif isinstance(value, list):
-                value = ', '.join(
-                    str(v['name'] if isinstance(v, dict) and 'name' in v else v) for v in value
-                )
-            else:
-                value = str(value)
-
-            # Special handling for subtasks
+            # Handle subtasks separately
             if field == 'subtasks':
                 subtasks = issue['fields'].get('subtasks', [])
                 subtask_keys = [subtask['key'] for subtask in subtasks]
                 value = ', '.join(subtask_keys)
 
             # Handle customfield_10005 (Sprint Name)
-            if field == 'customfield_10005' and isinstance(value, list) and value:
-                value = value[0].split("name=")[-1].split(",")[0]  # Extract name from string
+            elif field == 'customfield_10005':
+                if isinstance(value, list) and value:
+                    value = value[0].split("name=")[-1].split(",")[0]  # Extract name from string
+                else:
+                    value = ""
 
             # Handle customfield_26424 (Requirement Status)
-            if field == 'customfield_26424' and isinstance(value, list) and value:
-                value = value[0].get('status', '')  # Extract status from dictionary
+            elif field == 'customfield_26424':
+                if isinstance(value, list) and value:
+                    value = value[0].get('status', '')  # Extract status from dictionary
+                else:
+                    value = ""
+
+            # If value is a dictionary with a 'name' key
+            elif isinstance(value, dict) and 'name' in value:
+                value = value['name']
+
+            # If value is a list (but not handled earlier)
+            elif isinstance(value, list):
+                value = ', '.join(str(v['name'] if isinstance(v, dict) and 'name' in v else v) for v in value)
+
+            # Replace None with an empty string to prevent merging issues
+            if value is None:
+                value = ""
 
             # Replace any "!" character in the value
-            value = value.replace("!", "")
+            if isinstance(value, str):
+                value = value.replace("!", "")
 
             # Escape the cell content to prevent HTML parsing issues
             table_row += f"<td>{html.escape(value)}</td>"
@@ -1162,4 +1167,3 @@ def generate_html_table(issues, fields):
     </table>
     """
     return html_table
-

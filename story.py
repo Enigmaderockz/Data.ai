@@ -1171,3 +1171,33 @@ def generate_html_table(issues, fields):
 
 table_row += f"<td>&nbsp;{escape(value)}&nbsp;</td>"
 value = value.replace('\u200B', '')
+
+
+########################################################################################################
+
+for field in fields:
+    # Fetch the field value or return an empty string if None
+    value = issue['fields'].get(field, "")
+
+    # Specific handling for custom fields
+    if field == 'customfield_10005' and isinstance(value, list) and value:
+        value = value[0].split("name=")[-1].split(",")[0]
+    elif field == 'customfield_26424' and isinstance(value, list) and value:
+        value = value[0].get('status', '')
+    
+    # Ensure dictionaries are handled properly
+    elif isinstance(value, dict):
+        value = value.get('displayName') or value.get('name') or value.get('value') or ""
+
+    # Convert lists to a comma-separated string
+    elif isinstance(value, list):
+        value = ', '.join(str(v['name'] if isinstance(v, dict) and 'name' in v else v) for v in value)
+
+    # Convert value to string if it's not None, otherwise empty string
+    value = str(value) if value is not None else ""
+
+    # Replace any "!" characters
+    value = value.replace("!", "")
+
+    # Escape the value for HTML
+    table_row += f"<td>{html.escape(value)}</td>"

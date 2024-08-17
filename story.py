@@ -1170,3 +1170,4 @@ def generate_html_table(issues, fields):
 
 
 table_row += f"<td>&nbsp;{escape(value)}&nbsp;</td>"
+value = value.replace('\u200B', '')

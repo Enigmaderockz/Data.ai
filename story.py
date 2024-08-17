@@ -1167,3 +1167,6 @@ def generate_html_table(issues, fields):
     </table>
     """
     return html_table
+
+
+table_row += f"<td>&nbsp;{escape(value)}&nbsp;</td>"

@@ -1175,63 +1175,83 @@ value = value.replace('\u200B', '')
 
 ########################################################################################################
 
-import html
+def remove_special_characters(value):
+    """Remove special characters from a value and attempt to convert back to original type."""
+    # Convert value to string
+    value_str = str(value).replace("!", "")
+    
+    # Attempt to convert back to float or int if possible
+    if isinstance(value, (int, float)):
+        try:
+            value = float(value_str) if '.' in value_str else int(value_str)
+        except ValueError:
+            value = value_str  # Fallback to string if conversion fails
+    else:
+        value = value_str  # Use the cleaned string value
+
+    return value
 
 def generate_html_table(issues, fields):
-    table = "<table border='1'>"
-    table += "<tr>"
+    # Table header
+    table_header = "<tr><th>Serial No</th><th>Story</th><th>Summary</th>"
     for field in fields:
-        table += f"<th>{html.escape(field)}</th>"
-    table += "</tr>"
+        field_name = custom_field_mapping.get(field, field.replace('_', ' ').title())
+        table_header += f"<th>{html.escape(field_name)}</th>"
+    table_header += "</tr>"
 
-    for issue in issues:
-        table_row = "<tr>"
+    colgroup = """
+    <colgroup>
+        <col style="width: 5%;">
+        <col style="width: 15%;">
+        <col style="width: 20%;">
+        {col_widths}
+    </colgroup>
+    """.format(col_widths="".join(['<col style="width: 10%;">' for _ in fields]))
+
+    table_rows = ""
+    for i, issue in enumerate(issues, start=1):
+        row_color = "#f2f2f2" if i % 2 != 0 else "#ffffff"
+        table_row = f"<tr style='background-color:{row_color};'><td>{i}</td><td>{html.escape(issue['key'])}</td><td>{html.escape(issue['fields']['summary'])}</td>"
+
         for field in fields:
-            value = issue['fields'].get(field, "")
-
-            # Handle None explicitly
-            if value is None:
-                value = ""
-
-            # Specific handling for known custom fields
-            if field == 'customfield_10005':
-                value = handle_customfield_10005(value)
-            elif field == 'customfield_26424':
-                value = handle_customfield_26424(value)
+            if field == 'subtasks':
+                subtasks = issue['fields'].get('subtasks', [])
+                subtask_keys = [subtask['key'] for subtask in subtasks]
+                value = ', '.join(subtask_keys)
             else:
-                # Handle other potential dictionary or list values
-                value = handle_generic_field(value)
+                value = issue['fields'].get(field, "")
 
-            # Escape value for HTML
-            value = html.escape(value)
+            if field == 'customfield_10005' and isinstance(value, list) and value:
+                value = value[0].split("name=")[-1].split(",")[0]
 
-            # Add the processed value to the table row
-            table_row += f"<td>{value}</td>"
+            elif field == 'customfield_26424' and isinstance(value, list) and value:
+                value = value[0].get('status', '')
+
+            elif isinstance(value, dict) and 'displayName' in value:
+                value = value['displayName']
+            elif isinstance(value, dict) and 'name' in value:
+                value = value['name']
+            elif isinstance(value, dict) and 'value' in value:
+                value = value['value']
+            elif isinstance(value, list):
+                value = ', '.join(str(v['name'] if isinstance(v, dict) and 'name' in v else v) for v in value)
+
+            if value is None or value == '':
+                value = "Not available"
+
+            # Remove special characters and attempt to convert back to original type
+            value = remove_special_characters(value)
+
+            table_row += f"<td>{html.escape(str(value))}</td>"
 
         table_row += "</tr>"
-        table += table_row
+        table_rows += table_row
 
-    table += "</table>"
-    return table
-
-def handle_customfield_10005(value):
-    if isinstance(value, list) and value:
-        # Extract the name from the list of dictionaries
-        return ', '.join(v.split("name=")[-1].split(",")[0] for v in value if "name=" in v)
-    return str(value)
-
-def handle_customfield_26424(value):
-    if isinstance(value, list) and value:
-        # Extract the status from the list of dictionaries
-        return ', '.join(v.get('status', '') for v in value)
-    return str(value)
-
-def handle_generic_field(value):
-    if isinstance(value, dict):
-        return value.get('displayName') or value.get('name') or value.get('value') or ""
-    elif isinstance(value, list):
-        return ', '.join(
-            str(v['name']) if isinstance(v, dict) and 'name' in v else str(v)
-            for v in value
-        )
-    return str(value)
+    html_table = f"""
+    <table border='1' cellpadding='5' cellspacing='0' style='border-collapse: collapse; width: 100%; table-layout: fixed;'>
+        {colgroup}
+        {table_header}
+        {table_rows}
+    </table>
+    """
+    return html_table

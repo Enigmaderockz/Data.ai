@@ -1258,10 +1258,31 @@ def generate_html_table(issues, fields):
 
 
 
-# Conditional styling and comments
-            if (qa_required == "Yes" and requirement_status != "OK") or (qa_required == "No" and requirement_status == "OK"):
-                cell_style = "color: red; font-weight: bold;"
-                cell_comment = "Check QA and Requirement Status"
-                table_row += f"<td style='{cell_style}' title='{cell_comment}'>{html.escape(str(value))}</td>"
+# Capture values for QA Required?, QA Assignee, and Requirement Status
+            if field == 'customfield_17201':
+                qa_required = str(value).replace("!", "").strip()  # Remove '!' and trim whitespace
+            elif field == 'customfield_26424':
+                requirement_status = str(value).replace("!", "").strip()  # Remove '!' and trim whitespace
+            elif field == 'customfield_26027':
+                qa_assignee = str(value).replace("!", "").strip()  # Remove '!' and trim whitespace
+
+            # Escape the cell content to prevent HTML parsing issues
+            cell_content = html.escape(str(value))
+
+            # Apply highlighting rules
+            if field == 'customfield_17201':
+                if (qa_required == "Yes" and requirement_status != "OK") or (qa_required == "No" and requirement_status == "OK"):
+                    table_row += f"<td style='color: red;'>{cell_content}</td>"
+                else:
+                    table_row += f"<td>{cell_content}</td>"
+            elif field == 'customfield_26027':
+                if qa_assignee and qa_required != "Yes":
+                    table_row += f"<td style='background-color: yellow;'>{cell_content}</td>"
+                else:
+                    table_row += f"<td>{cell_content}</td>"
             else:
-                table_row += f"<td>{html.escape(str(value))}</td>"
+                table_row += f"<td>{cell_content}</td>"
+
+
+
+

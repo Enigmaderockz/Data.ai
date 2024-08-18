@@ -1290,68 +1290,56 @@ def generate_html_table(issues, fields):
 
 ##########33 highlightinh
 
-def generate_table_row(field, cell_content, qa_assignee, qa_required, requirement_status):
-    table_row = ""
+if field == "customfield_26027" and qa_assignee != "Not Available":  # QA Assignee field check
+    if qa_required != "Yes" and requirement_status != "OK":
+        # Highlight the QA Assignee cell in yellow
+        table_row += f"<td style='background-color: yellow;'>{cell_content}</td>"
+        
+        # Highlight the "QA Required?" and "Requirement Status" cells in yellow
+        table_row += f"<td style='background-color: yellow;'>{html.escape(qa_required)}</td>"
+        table_row += f"<td style='background-color: yellow;'>{html.escape(requirement_status)}</td>"
 
-    if field == "customfield_26027":  # QA Assignee
-        if qa_assignee != "Not Available": 
-            if qa_required != "Yes" and requirement_status != "OK":
-                table_row += f"<td style='background-color: yellow;'>{cell_content}</td>"
-                # Highlighting the "QA Required?" and "Requirement Status" cells
-                qa_required_cell = f"<td style='background-color: yellow;'>{qa_required}</td>"
-                requirement_status_cell = f"<td style='background-color: yellow;'>{requirement_status}</td>"
-
-            elif qa_required == "Not Available":
-                if requirement_status == "OK":
-                    table_row += f"<td style='background-color: red;'>{cell_content}</td>"
-                    # Highlighting the "QA Required?" and "Requirement Status" cells
-                    qa_required_cell = f"<td style='background-color: red;'>{qa_required}</td>"
-                    requirement_status_cell = f"<td style='background-color: red;'>{requirement_status}</td>"
-
-                else:
-                    table_row += f"<td>{cell_content}</td>"
-                    # "QA Required?" and "Requirement Status" cells with no highlight
-                    qa_required_cell = f"<td>{qa_required}</td>"
-                    requirement_status_cell = f"<td>{requirement_status}</td>"
-
-            else:
-                if (qa_required == "Yes" and requirement_status != "OK") or (qa_required == "No" and requirement_status == "OK"):
-                    table_row += f"<td style='background-color: red;'>{cell_content}</td>"
-                    # Highlighting the "QA Required?" and "Requirement Status" cells
-                    qa_required_cell = f"<td style='background-color: red;'>{qa_required}</td>"
-                    requirement_status_cell = f"<td style='background-color: red;'>{requirement_status}</td>"
-
-                else:
-                    table_row += f"<td>{cell_content}</td>"
-                    # "QA Required?" and "Requirement Status" cells with no highlight
-                    qa_required_cell = f"<td>{qa_required}</td>"
-                    requirement_status_cell = f"<td>{requirement_status}</td>"
-
-        elif qa_assignee == "Not Available":
-            if requirement_status == "OK" or qa_required == "Yes":
-                table_row += f"<td style='background-color: blue;'>{cell_content}</td>"
-                # Highlighting the "QA Required?" and "Requirement Status" cells
-                qa_required_cell = f"<td style='background-color: blue;'>{qa_required}</td>"
-                requirement_status_cell = f"<td style='background-color: blue;'>{requirement_status}</td>"
-
-            else:
-                table_row += f"<td>{cell_content}</td>"
-                # "QA Required?" and "Requirement Status" cells with no highlight
-                qa_required_cell = f"<td>{qa_required}</td>"
-                requirement_status_cell = f"<td>{requirement_status}</td>"
+    elif qa_required == "Not Available":
+        if requirement_status == "OK":
+            # Highlight the QA Assignee cell in red
+            table_row += f"<td style='background-color: red;'>{cell_content}</td>"
+            
+            # Highlight the "QA Required?" and "Requirement Status" cells in red
+            table_row += f"<td style='background-color: red;'>{html.escape(qa_required)}</td>"
+            table_row += f"<td style='background-color: red;'>{html.escape(requirement_status)}</td>"
 
         else:
             table_row += f"<td>{cell_content}</td>"
-            # "QA Required?" and "Requirement Status" cells with no highlight
-            qa_required_cell = f"<td>{qa_required}</td>"
-            requirement_status_cell = f"<td>{requirement_status}</td>"
-
-        # Add the QA Required and Requirement Status cells to the row
-        table_row += qa_required_cell
-        table_row += requirement_status_cell
+            # No additional highlight for "QA Required?" and "Requirement Status"
+            table_row += f"<td>{html.escape(qa_required)}</td>"
+            table_row += f"<td>{html.escape(requirement_status)}</td>"
 
     else:
-        # For other fields, just escape the cell content
-        table_row += f"<td>{html.escape(str(cell_content))}</td>"
+        if (qa_required == "Yes" and requirement_status != "OK") or (qa_required == "No" and requirement_status == "OK"):
+            # Highlight the QA Assignee cell in red
+            table_row += f"<td style='background-color: red;'>{cell_content}</td>"
+            
+            # Highlight the "QA Required?" and "Requirement Status" cells in red
+            table_row += f"<td style='background-color: red;'>{html.escape(qa_required)}</td>"
+            table_row += f"<td style='background-color: red;'>{html.escape(requirement_status)}</td>"
 
-    return table_row
+        else:
+            table_row += f"<td>{cell_content}</td>"
+            # No additional highlight for "QA Required?" and "Requirement Status"
+            table_row += f"<td>{html.escape(qa_required)}</td>"
+            table_row += f"<td>{html.escape(requirement_status)}</td>"
+
+elif field == "customfield_26027" and qa_assignee == "Not Available":  # QA Assignee is Not Available
+    if requirement_status == "OK" or qa_required == "Yes":
+        # Highlight the QA Assignee cell in blue
+        table_row += f"<td style='background-color: blue;'>{cell_content}</td>"
+        
+        # Highlight the "QA Required?" and "Requirement Status" cells in blue
+        table_row += f"<td style='background-color: blue;'>{html.escape(qa_required)}</td>"
+        table_row += f"<td style='background-color: blue;'>{html.escape(requirement_status)}</td>"
+
+    else:
+        table_row += f"<td>{cell_content}</td>"
+        # No additional highlight for "QA Required?" and "Requirement Status"
+        table_row += f"<td>{html.escape(qa_required)}</td>"
+        table_row += f"<td>{html.escape(requirement_status)}</td>"

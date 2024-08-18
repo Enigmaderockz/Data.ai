@@ -1290,128 +1290,63 @@ def generate_html_table(issues, fields):
 
 ##########33 highlightinh
 
-# Other imports and initial setup remain the same...
+if field == "customfield_26027":  # QA Assignee
+    if qa_assignee != "Not Available": 
+        if qa_required != "Yes" and requirement_status != "OK":
+            table_row += f"<td style='background-color: yellow;'>{cell_content}</td>"
 
-def generate_html_table(issues, fields):
-    # Table header
-    table_header = "<tr><th>Serial No</th><th>Story</th><th>Summary</th>"
-    for field in fields:
-        field_name = custom_field_mapping.get(field, field.replace('_', ' ').title())
-        table_header += f"<th>{html.escape(field_name)}</th>"
-    table_header += "</tr>"
+            # Add these lines for the other two columns
+            qa_required_cell = f"<td style='background-color: yellow;'>{qa_required}</td>"
+            requirement_status_cell = f"<td style='background-color: yellow;'>{requirement_status}</td>"
 
-    colgroup = """
-    <colgroup>
-        <col style="width: 5%;">
-        <col style="width: 15%;">
-        <col style="width: 20%;">
-        {col_widths}
-    </colgroup>
-    """.format(col_widths="".join(['<col style="width: 10%;">' for _ in fields]))
+        elif qa_required == "Not Available":
+            if requirement_status == "OK":
+                table_row += f"<td style='background-color: red;'>{cell_content}</td>"
+                
+                # Add these lines for the other two columns
+                qa_required_cell = f"<td style='background-color: red;'>{qa_required}</td>"
+                requirement_status_cell = f"<td style='background-color: red;'>{requirement_status}</td>"
 
-    table_rows = ""
-    for i, issue in enumerate(issues, start=1):
-        row_color = "#f2f2f2" if i % 2 != 0 else "#ffffff"
-        table_row = f"<tr style='background-color:{row_color};'><td>{i}</td><td>{html.escape(issue['key'])}</td><td>{html.escape(issue['fields']['summary'])}</td>"
+            else:
+                table_row += f"<td>{cell_content}</td>"
+                
+                # Add these lines for the other two columns
+                qa_required_cell = f"<td>{qa_required}</td>"
+                requirement_status_cell = f"<td>{requirement_status}</td>"
 
-        qa_assignee = ""
-        qa_required = ""
-        requirement_status = ""
+        else:
+            if (qa_required == "Yes" and requirement_status != "OK") or (qa_required == "No" and requirement_status == "OK"):
+                table_row += f"<td style='background-color: red;'>{cell_content}</td>"
 
-        for field in fields:
-            value = issue['fields'].get(field, "")
-            if field == 'customfield_10005' and isinstance(value, list) and value:
-                value = value[0].split("name=")[-1].split(",")[0]
-            elif field == 'customfield_26424' and isinstance(value, list) and value:
-                value = value[0].get('status', '')
-            elif isinstance(value, dict) and 'displayName' in value:
-                value = value['displayName']
-            if isinstance(value, dict) and 'name' in value:
-                value = value['name']
-            elif isinstance(value, dict) and 'value' in value:
-                value = value['value']
-            elif isinstance(value, list):
-                value = ', '.join(str(v['name'] if isinstance(v, dict) and 'name' in v else v) for v in value)
-            
-            if value is None:
-                value = ""
+                # Add these lines for the other two columns
+                qa_required_cell = f"<td style='background-color: red;'>{qa_required}</td>"
+                requirement_status_cell = f"<td style='background-color: red;'>{requirement_status}</td>"
+                
+            else:
+                table_row += f"<td>{cell_content}</td>"
 
-            value = remove_special_characters(value)
+                # Add these lines for the other two columns
+                qa_required_cell = f"<td>{qa_required}</td>"
+                requirement_status_cell = f"<td>{requirement_status}</td>"
 
-            if field == 'customfield_26027':
-                qa_assignee = str(value).replace("!", "").strip()
-            if field == 'customfield_17201':
-                qa_required = str(value).replace("!", "").strip()
-            if field == 'customfield_26424':
-                requirement_status = str(value).replace("!", "").strip()
+    elif qa_assignee == "Not Available":
+        if requirement_status == "OK" or qa_required == "Yes":
+            table_row += f"<td style='background-color: blue;'>{cell_content}</td>"
 
-            cell_content = html.escape(str(value))
+            # Add these lines for the other two columns
+            qa_required_cell = f"<td style='background-color: blue;'>{qa_required}</td>"
+            requirement_status_cell = f"<td style='background-color: blue;'>{requirement_status}</td>"
 
-            highlight_style = ""
-            if qa_assignee != "Not Available":
-                if field == 'customfield_26027':
-                    if qa_required != "Yes" and requirement_status != "OK":
-                        highlight_style = "background-color: yellow;"
-                    elif qa_required == "Not Available" and requirement_status != "OK":
-                        highlight_style = "background-color: red;"
-                    elif qa_required == "Yes" and requirement_status == "OK":
-                        highlight_style = "background-color: blue;"
+        else:
+            table_row += f"<td>{cell_content}</td>"
 
-            table_row += f"<td style='{highlight_style}'>{cell_content}</td>"
+            # Add these lines for the other two columns
+            qa_required_cell = f"<td>{qa_required}</td>"
+            requirement_status_cell = f"<td>{requirement_status}</td>"
 
-        table_rows += table_row + "</tr>"
+    else:
+        table_row += f"<td>{cell_content}</td>"
 
-    html_table = f"""
-    <table border='1' cellpadding='5' cellspacing='0' style='border-collapse: collapse; width: 100%; table-layout: fixed;'>
-        {colgroup}
-        {table_header}
-        {table_rows}
-    </table>
-    """
-    return html_table
-
-# Other functions remain the same...
-
-def process_all_jql_queries():
-    all_email_content = []
-
-    fields = [
-        'issuetype',
-        'priority',
-        'versions',
-        'customfield_17201',
-        'components',
-        'labels',
-        'status',
-        'subtasks',
-        'resolution',
-        'fixVersions',
-        'customfield_10005',
-        'customfield_10002',
-        'customfield_26424',
-        'customfield_26027',
-    ]
-
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        futures = {executor.submit(process_issues, jql_query, all_email_content, fields): jql_query for jql_query in jql_queries}
-        for future in concurrent.futures.as_completed(futures):
-            jql_query = futures[future]
-            try:
-                future.result()
-            except Exception as e:
-                logging.error(f"Error processing JQL '{jql_query}': {e}")
-                retry_attempts = 3
-                for attempt in range(retry_attempts):
-                    logging.info(f"Retrying JQL '{jql_query}' (Attempt {attempt + 1}/{retry_attempts})")
-                    try:
-                        process_issues(jql_query, all_email_content, fields)
-                        break
-                    except Exception as e:
-                        logging.error(f"Retry {attempt + 1} failed for JQL '{jql_query}': {e}")
-                        time.sleep(5)
-
-    combined_email_content = "<br><br>".join(all_email_content)
-    send_email("Jira Report for All Components", combined_email_content)
-
-# Start processing all JQL queries
-process_all_jql_queries()
+        # Add these lines for the other two columns
+        qa_required_cell = f"<td>{qa_required}</td>"
+        requirement_status_cell = f"<td>{requirement_status}</td>"

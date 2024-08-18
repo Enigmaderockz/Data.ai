@@ -1290,16 +1290,16 @@ def generate_html_table(issues, fields):
 
 ##########33 highlightinh
 
+# Other imports and initial setup remain the same...
+
 def generate_html_table(issues, fields):
     # Table header
     table_header = "<tr><th>Serial No</th><th>Story</th><th>Summary</th>"
     for field in fields:
-        # Replace custom field IDs with user-friendly names if available
         field_name = custom_field_mapping.get(field, field.replace('_', ' ').title())
         table_header += f"<th>{html.escape(field_name)}</th>"
     table_header += "</tr>"
 
-    # Define column widths for fixed table layout
     colgroup = """
     <colgroup>
         <col style="width: 5%;">
@@ -1311,70 +1311,56 @@ def generate_html_table(issues, fields):
 
     table_rows = ""
     for i, issue in enumerate(issues, start=1):
-        # Alternate row color: light gray for odd rows, white for even rows
         row_color = "#f2f2f2" if i % 2 != 0 else "#ffffff"
         table_row = f"<tr style='background-color:{row_color};'><td>{i}</td><td>{html.escape(issue['key'])}</td><td>{html.escape(issue['fields']['summary'])}</td>"
 
-        qa_assignee_color = None  # Track the color applied to the QA Assignee cell
+        qa_assignee = ""
+        qa_required = ""
+        requirement_status = ""
 
         for field in fields:
-            if field == 'subtasks':
-                subtasks = issue['fields'].get('subtasks', [])
-                subtask_keys = [subtask['key'] for subtask in subtasks]
-                value = ', '.join(subtask_keys)
-            else:
-                value = issue['fields'].get(field, "")
-
-            # Handle customfield_10005 (Sprint Name)
+            value = issue['fields'].get(field, "")
             if field == 'customfield_10005' and isinstance(value, list) and value:
-                value = value[0].split("name=")[-1].split(",")[0]  # Extract name from string
-
-            # Handle customfield_26424 (Status)
+                value = value[0].split("name=")[-1].split(",")[0]
             elif field == 'customfield_26424' and isinstance(value, list) and value:
-                value = value[0].get('status', '')  # Extract status from dictionary
-
+                value = value[0].get('status', '')
             elif isinstance(value, dict) and 'displayName' in value:
                 value = value['displayName']
-            elif isinstance(value, dict) and 'name' in value:
+            if isinstance(value, dict) and 'name' in value:
                 value = value['name']
             elif isinstance(value, dict) and 'value' in value:
                 value = value['value']
             elif isinstance(value, list):
                 value = ', '.join(str(v['name'] if isinstance(v, dict) and 'name' in v else v) for v in value)
-
-            # Replace None with an empty string to prevent merging issues
+            
             if value is None:
                 value = ""
 
-            # Replace any "!" character in the value
             value = remove_special_characters(value)
 
-            # Escape the cell content to prevent HTML parsing issues
+            if field == 'customfield_26027':
+                qa_assignee = str(value).replace("!", "").strip()
+            if field == 'customfield_17201':
+                qa_required = str(value).replace("!", "").strip()
+            if field == 'customfield_26424':
+                requirement_status = str(value).replace("!", "").strip()
+
             cell_content = html.escape(str(value))
 
-            # Apply the highlighting rules
-            if field == 'customfield_26027':  # QA Assignee
-                if qa_assignee == "Not available" and qa_required != "Yes" and requirement_status != "OK":
-                    qa_assignee_color = "yellow"
-                elif qa_assignee != "Not available" and qa_required == "Not available" and requirement_status != "OK":
-                    qa_assignee_color = "red"
-                elif qa_assignee != "Not available" and requirement_status == "OK":
-                    qa_assignee_color = "blue"
+            highlight_style = ""
+            if qa_assignee != "Not Available":
+                if field == 'customfield_26027':
+                    if qa_required != "Yes" and requirement_status != "OK":
+                        highlight_style = "background-color: yellow;"
+                    elif qa_required == "Not Available" and requirement_status != "OK":
+                        highlight_style = "background-color: red;"
+                    elif qa_required == "Yes" and requirement_status == "OK":
+                        highlight_style = "background-color: blue;"
 
-            if field == 'customfield_26027':
-                table_row += f"<td style='background-color:{qa_assignee_color};'>{cell_content}</td>"
-            elif field == 'customfield_17201' or field == 'customfield_26424':  # QA Required? and Requirement Status
-                if qa_assignee_color:
-                    table_row += f"<td style='background-color:{qa_assignee_color};'>{cell_content}</td>"
-                else:
-                    table_row += f"<td>{cell_content}</td>"
-            else:
-                table_row += f"<td>{cell_content}</td>"
+            table_row += f"<td style='{highlight_style}'>{cell_content}</td>"
 
-        table_row += "</tr>"
-        table_rows += table_row
+        table_rows += table_row + "</tr>"
 
-    # Add CSS for table layout consistency
     html_table = f"""
     <table border='1' cellpadding='5' cellspacing='0' style='border-collapse: collapse; width: 100%; table-layout: fixed;'>
         {colgroup}
@@ -1383,3 +1369,49 @@ def generate_html_table(issues, fields):
     </table>
     """
     return html_table
+
+# Other functions remain the same...
+
+def process_all_jql_queries():
+    all_email_content = []
+
+    fields = [
+        'issuetype',
+        'priority',
+        'versions',
+        'customfield_17201',
+        'components',
+        'labels',
+        'status',
+        'subtasks',
+        'resolution',
+        'fixVersions',
+        'customfield_10005',
+        'customfield_10002',
+        'customfield_26424',
+        'customfield_26027',
+    ]
+
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        futures = {executor.submit(process_issues, jql_query, all_email_content, fields): jql_query for jql_query in jql_queries}
+        for future in concurrent.futures.as_completed(futures):
+            jql_query = futures[future]
+            try:
+                future.result()
+            except Exception as e:
+                logging.error(f"Error processing JQL '{jql_query}': {e}")
+                retry_attempts = 3
+                for attempt in range(retry_attempts):
+                    logging.info(f"Retrying JQL '{jql_query}' (Attempt {attempt + 1}/{retry_attempts})")
+                    try:
+                        process_issues(jql_query, all_email_content, fields)
+                        break
+                    except Exception as e:
+                        logging.error(f"Retry {attempt + 1} failed for JQL '{jql_query}': {e}")
+                        time.sleep(5)
+
+    combined_email_content = "<br><br>".join(all_email_content)
+    send_email("Jira Report for All Components", combined_email_content)
+
+# Start processing all JQL queries
+process_all_jql_queries()

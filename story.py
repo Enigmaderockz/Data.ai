@@ -1290,63 +1290,68 @@ def generate_html_table(issues, fields):
 
 ##########33 highlightinh
 
-if field == "customfield_26027":  # QA Assignee
-    if qa_assignee != "Not Available": 
-        if qa_required != "Yes" and requirement_status != "OK":
-            table_row += f"<td style='background-color: yellow;'>{cell_content}</td>"
+def generate_table_row(field, cell_content, qa_assignee, qa_required, requirement_status):
+    table_row = ""
 
-            # Add these lines for the other two columns
-            qa_required_cell = f"<td style='background-color: yellow;'>{qa_required}</td>"
-            requirement_status_cell = f"<td style='background-color: yellow;'>{requirement_status}</td>"
+    if field == "customfield_26027":  # QA Assignee
+        if qa_assignee != "Not Available": 
+            if qa_required != "Yes" and requirement_status != "OK":
+                table_row += f"<td style='background-color: yellow;'>{cell_content}</td>"
+                # Highlighting the "QA Required?" and "Requirement Status" cells
+                qa_required_cell = f"<td style='background-color: yellow;'>{qa_required}</td>"
+                requirement_status_cell = f"<td style='background-color: yellow;'>{requirement_status}</td>"
 
-        elif qa_required == "Not Available":
-            if requirement_status == "OK":
-                table_row += f"<td style='background-color: red;'>{cell_content}</td>"
-                
-                # Add these lines for the other two columns
-                qa_required_cell = f"<td style='background-color: red;'>{qa_required}</td>"
-                requirement_status_cell = f"<td style='background-color: red;'>{requirement_status}</td>"
+            elif qa_required == "Not Available":
+                if requirement_status == "OK":
+                    table_row += f"<td style='background-color: red;'>{cell_content}</td>"
+                    # Highlighting the "QA Required?" and "Requirement Status" cells
+                    qa_required_cell = f"<td style='background-color: red;'>{qa_required}</td>"
+                    requirement_status_cell = f"<td style='background-color: red;'>{requirement_status}</td>"
+
+                else:
+                    table_row += f"<td>{cell_content}</td>"
+                    # "QA Required?" and "Requirement Status" cells with no highlight
+                    qa_required_cell = f"<td>{qa_required}</td>"
+                    requirement_status_cell = f"<td>{requirement_status}</td>"
+
+            else:
+                if (qa_required == "Yes" and requirement_status != "OK") or (qa_required == "No" and requirement_status == "OK"):
+                    table_row += f"<td style='background-color: red;'>{cell_content}</td>"
+                    # Highlighting the "QA Required?" and "Requirement Status" cells
+                    qa_required_cell = f"<td style='background-color: red;'>{qa_required}</td>"
+                    requirement_status_cell = f"<td style='background-color: red;'>{requirement_status}</td>"
+
+                else:
+                    table_row += f"<td>{cell_content}</td>"
+                    # "QA Required?" and "Requirement Status" cells with no highlight
+                    qa_required_cell = f"<td>{qa_required}</td>"
+                    requirement_status_cell = f"<td>{requirement_status}</td>"
+
+        elif qa_assignee == "Not Available":
+            if requirement_status == "OK" or qa_required == "Yes":
+                table_row += f"<td style='background-color: blue;'>{cell_content}</td>"
+                # Highlighting the "QA Required?" and "Requirement Status" cells
+                qa_required_cell = f"<td style='background-color: blue;'>{qa_required}</td>"
+                requirement_status_cell = f"<td style='background-color: blue;'>{requirement_status}</td>"
 
             else:
                 table_row += f"<td>{cell_content}</td>"
-                
-                # Add these lines for the other two columns
+                # "QA Required?" and "Requirement Status" cells with no highlight
                 qa_required_cell = f"<td>{qa_required}</td>"
                 requirement_status_cell = f"<td>{requirement_status}</td>"
-
-        else:
-            if (qa_required == "Yes" and requirement_status != "OK") or (qa_required == "No" and requirement_status == "OK"):
-                table_row += f"<td style='background-color: red;'>{cell_content}</td>"
-
-                # Add these lines for the other two columns
-                qa_required_cell = f"<td style='background-color: red;'>{qa_required}</td>"
-                requirement_status_cell = f"<td style='background-color: red;'>{requirement_status}</td>"
-                
-            else:
-                table_row += f"<td>{cell_content}</td>"
-
-                # Add these lines for the other two columns
-                qa_required_cell = f"<td>{qa_required}</td>"
-                requirement_status_cell = f"<td>{requirement_status}</td>"
-
-    elif qa_assignee == "Not Available":
-        if requirement_status == "OK" or qa_required == "Yes":
-            table_row += f"<td style='background-color: blue;'>{cell_content}</td>"
-
-            # Add these lines for the other two columns
-            qa_required_cell = f"<td style='background-color: blue;'>{qa_required}</td>"
-            requirement_status_cell = f"<td style='background-color: blue;'>{requirement_status}</td>"
 
         else:
             table_row += f"<td>{cell_content}</td>"
-
-            # Add these lines for the other two columns
+            # "QA Required?" and "Requirement Status" cells with no highlight
             qa_required_cell = f"<td>{qa_required}</td>"
             requirement_status_cell = f"<td>{requirement_status}</td>"
 
-    else:
-        table_row += f"<td>{cell_content}</td>"
+        # Add the QA Required and Requirement Status cells to the row
+        table_row += qa_required_cell
+        table_row += requirement_status_cell
 
-        # Add these lines for the other two columns
-        qa_required_cell = f"<td>{qa_required}</td>"
-        requirement_status_cell = f"<td>{requirement_status}</td>"
+    else:
+        # For other fields, just escape the cell content
+        table_row += f"<td>{html.escape(str(cell_content))}</td>"
+
+    return table_row

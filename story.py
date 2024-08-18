@@ -1290,56 +1290,97 @@ def generate_html_table(issues, fields):
 
 ##########33 highlightinh
 
-if field == "customfield_26027" and qa_assignee != "Not Available":  # QA Assignee field check
-    if qa_required != "Yes" and requirement_status != "OK":
-        # Highlight the QA Assignee cell in yellow
-        table_row += f"<td style='background-color: yellow;'>{cell_content}</td>"
-        
-        # Highlight the "QA Required?" and "Requirement Status" cells in yellow
-        table_row += f"<td style='background-color: yellow;'>{html.escape(qa_required)}</td>"
-        table_row += f"<td style='background-color: yellow;'>{html.escape(requirement_status)}</td>"
+ def generate_html_table(issues, fields):
+    # Table header
+    table_header = "<tr><th>Serial No</th><th>Story</th><th>Summary</th>"
+    for field in fields:
+        field_name = custom_field_mapping.get(field, field.replace('_', ' ').title())
+        table_header += f"<th>{html.escape(field_name)}</th>"
+    table_header += "</tr>"
 
-    elif qa_required == "Not Available":
-        if requirement_status == "OK":
-            # Highlight the QA Assignee cell in red
-            table_row += f"<td style='background-color: red;'>{cell_content}</td>"
-            
-            # Highlight the "QA Required?" and "Requirement Status" cells in red
-            table_row += f"<td style='background-color: red;'>{html.escape(qa_required)}</td>"
-            table_row += f"<td style='background-color: red;'>{html.escape(requirement_status)}</td>"
+    colgroup = """
+    <colgroup>
+        <col style="width: 5%;">
+        <col style="width: 15%;">
+        <col style="width: 20%;">
+        {col_widths}
+    </colgroup>
+    """.format(col_widths="".join(['<col style="width: 10%;">' for _ in fields]))
 
-        else:
-            table_row += f"<td>{cell_content}</td>"
-            # No additional highlight for "QA Required?" and "Requirement Status"
-            table_row += f"<td>{html.escape(qa_required)}</td>"
-            table_row += f"<td>{html.escape(requirement_status)}</td>"
+    table_rows = ""
+    for i, issue in enumerate(issues, start=1):
+        row_color = "#f2f2f2" if i % 2 != 0 else "#ffffff"
+        table_row = f"<tr style='background-color:{row_color};'><td>{i}</td><td>{html.escape(issue['key'])}</td><td>{html.escape(issue['fields']['summary'])}</td>"
 
-    else:
-        if (qa_required == "Yes" and requirement_status != "OK") or (qa_required == "No" and requirement_status == "OK"):
-            # Highlight the QA Assignee cell in red
-            table_row += f"<td style='background-color: red;'>{cell_content}</td>"
-            
-            # Highlight the "QA Required?" and "Requirement Status" cells in red
-            table_row += f"<td style='background-color: red;'>{html.escape(qa_required)}</td>"
-            table_row += f"<td style='background-color: red;'>{html.escape(requirement_status)}</td>"
+        qa_required = ""
+        qa_assignee = ""
+        requirement_status = ""
 
-        else:
-            table_row += f"<td>{cell_content}</td>"
-            # No additional highlight for "QA Required?" and "Requirement Status"
-            table_row += f"<td>{html.escape(qa_required)}</td>"
-            table_row += f"<td>{html.escape(requirement_status)}</td>"
+        for field in fields:
+            if field == 'subtasks':
+                subtasks = issue['fields'].get('subtasks', [])
+                subtask_keys = [subtask['key'] for subtask in subtasks]
+                value = ', '.join(subtask_keys)
+            else:
+                value = issue['fields'].get(field, "")
 
-elif field == "customfield_26027" and qa_assignee == "Not Available":  # QA Assignee is Not Available
-    if requirement_status == "OK" or qa_required == "Yes":
-        # Highlight the QA Assignee cell in blue
-        table_row += f"<td style='background-color: blue;'>{cell_content}</td>"
-        
-        # Highlight the "QA Required?" and "Requirement Status" cells in blue
-        table_row += f"<td style='background-color: blue;'>{html.escape(qa_required)}</td>"
-        table_row += f"<td style='background-color: blue;'>{html.escape(requirement_status)}</td>"
+            if field == 'customfield_10005' and isinstance(value, list) and value:
+                value = value[0].split("name=")[-1].split(",")[0]
 
-    else:
-        table_row += f"<td>{cell_content}</td>"
-        # No additional highlight for "QA Required?" and "Requirement Status"
-        table_row += f"<td>{html.escape(qa_required)}</td>"
-        table_row += f"<td>{html.escape(requirement_status)}</td>"
+            elif field == 'customfield_26424' and isinstance(value, list) and value:
+                value = value[0].get('status', '')
+
+            elif isinstance(value, dict) and 'displayName' in value:
+                value = value['displayName']
+            if isinstance(value, dict) and 'name' in value:
+                value = value['name']
+            elif isinstance(value, dict) and 'value' in value:
+                value = value['value']
+            elif isinstance(value, list):
+                value = ', '.join(str(v['name'] if isinstance(v, dict) and 'name' in v else v) for v in value)
+
+            if value is None:
+                value = ""
+
+            value = remove_special_characters(value)
+
+            # Capture the required fields for conditional formatting
+            if field == 'customfield_26027':
+                qa_required = str(value).replace("!", "").strip()
+
+            if field == 'customfield_17201':
+                qa_assignee = str(value).replace("!", "").strip()
+
+            if field == 'requirementstatus':
+                requirement_status = str(value).replace("!", "").strip()
+
+            # Escape the cell content
+            cell_content = html.escape(str(value))
+
+            # Apply your logic to the existing columns
+            if field == 'customfield_17201':  # QA Assignee column
+                if qa_assignee != "Not Available" and qa_required != "Yes":
+                    table_row += f"<td style='background-color: yellow;'>{cell_content}</td>"
+                else:
+                    table_row += f"<td>{cell_content}</td>"
+            elif field == 'customfield_26027':  # QA Required? column
+                if qa_assignee != "Not Available" and qa_required != "Yes":
+                    table_row += f"<td style='background-color: yellow;'>{cell_content}</td>"
+                elif qa_required == "Not Available" and requirement_status == "OK":
+                    table_row += f"<td style='background-color: red;'>{cell_content}</td>"
+                else:
+                    table_row += f"<td>{cell_content}</td>"
+            elif field == 'requirementstatus':  # Requirement Status column
+                if qa_assignee != "Not Available" and qa_required != "Yes" and requirement_status != "OK":
+                    table_row += f"<td style='background-color: yellow;'>{cell_content}</td>"
+                elif qa_required == "Not Available" and requirement_status == "OK":
+                    table_row += f"<td style='background-color: red;'>{cell_content}</td>"
+                else:
+                    table_row += f"<td>{cell_content}</td>"
+            else:
+                table_row += f"<td>{cell_content}</td>"
+
+        table_row += "</tr>"
+        table_rows += table_row
+
+    return f"<table>{colgroup}{table_header}{table_rows}</table>"

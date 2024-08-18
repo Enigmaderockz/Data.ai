@@ -1291,113 +1291,41 @@ def generate_html_table(issues, fields):
 ##########33 highlightinh
 
  def generate_html_table(issues, fields):
-    # Table header
-    table_header = "<tr><th>Serial No</th><th>Story</th><th>Summary</th>"
-    field_indices = {}  # To map field names to their column indices
-    for index, field in enumerate(fields, start=3):
-        # Replace custom field IDs with user-friendly names if available
-        field_name = custom_field_mapping.get(field, field.replace('_', ' ').title())
-        table_header += f"<th>{html.escape(field_name)}</th>"
-        field_indices[field] = index
-    table_header += "</tr>"
+    # ... (rest of your code)
 
-    # Define column widths for fixed table layout
-    colgroup = """
-    <colgroup>
-        <col style="width: 5%;">
-        <col style="width: 15%;">
-        <col style="width: 20%;">
-        {col_widths}
-    </colgroup>
-    """.format(col_widths="".join(['<col style="width: 10%;">' for _ in fields]))
-
-    table_rows = ""
     for i, issue in enumerate(issues, start=1):
-        # Alternate row color: light gray for odd rows, white for even rows
-        row_color = "#f2f2f2" if i % 2 != 0 else "#ffffff"
-        table_row = f"<tr style='background-color:{row_color};'><td>{i}</td><td>{html.escape(issue['key'])}</td><td>{html.escape(issue['fields']['summary'])}</td>"
+        # ... (rest of your code)
 
-        qa_assignee = ""
-        qa_required = ""
-        requirement_status = ""
-
-        # Process each field
         for field in fields:
-            if field == 'subtasks':
-                subtasks = issue['fields'].get('subtasks', [])
-                subtask_keys = [subtask['key'] for subtask in subtasks]
-                value = ', '.join(subtask_keys)
+            # ... (rest of your code)
+
+            # ... (your existing logic to determine qa_required, requirement_status, etc.)
+
+            # Identify the column index for "QA Assignee"
+            qa_assignee_index = fields.index("customfield_20627")
+
+            # Apply highlighting to the cell_content based on conditions
+            if field == "customfield_20627" and qa_assignee == "Not Available" and qa_required != "Yes" and requirement_status != "OK":
+                highlight_color = "yellow"
+            elif field == "customfield_20627" and qa_assignee == "Not Available" and qa_required == "Not Available" and requirement_status == "OK":
+                highlight_color = "red"
+            elif field == "customfield_20627" and qa_assignee == "Not Available" and ((qa_required == "Yes" and requirement_status != "OK") or (qa_required == "No" and requirement_status == "OK")):
+                highlight_color = "red"
+            elif field == "customfield_20627" and qa_assignee == "Not Available" and (requirement_status == "OK" or qa_required == "Yes"):
+                highlight_color = "blue"
             else:
-                value = issue['fields'].get(field, "")
+                highlight_color = None
 
-            # Handle customfield_10005 (Sprint Name)
-            if field == 'customfield_10005' and isinstance(value, list) and value:
-                value = value[0].split("name=")[-1].split(",")[0]  # Extract name from string
-
-            # Handle customfield_26424 (Status)
-            elif field == 'customfield_26424' and isinstance(value, list) and value:
-                value = value[0].get('status', '')  # Extract status from dictionary
-
-            elif isinstance(value, dict) and 'displayName' in value:
-                value = value['displayName']
-            if isinstance(value, dict) and 'name' in value:
-                value = value['name']
-            elif isinstance(value, dict) and 'value' in value:
-                value = value['value']
-            elif isinstance(value, list):
-                value = ', '.join(str(v['name'] if isinstance(v, dict) and 'name' in v else v) for v in value)
-
-            # Replace None with an empty string to prevent merging issues
-            if value is None:
-                value = ""
-
-            # Replace any "!" character in the value
-            value = remove_special_characters(value)
-
-            # Capture QA Required? and Requirement Status
-            if field == 'customfield_26027':
-                qa_required = str(value).replace("!", "").strip()  # Remove '!' and trim whitespace
-            if field == 'customfield_17201':
-                qa_assignee = str(value).replace("!", "").strip()  # Remove '!' and trim whitespace
-            if field == 'customfield_26424':
-                requirement_status = value
-
-            # Escape the cell content to prevent HTML parsing issues
-            cell_content = html.escape(str(value))
-
-            # Determine the cell style
-            if field == 'customfield_17201':
-                if qa_assignee != "Not available":
-                    if qa_required != "Yes" and requirement_status != "OK":
-                        cell_style = 'background-color: yellow;'
-                    elif qa_required == "Not available":
-                        if requirement_status == "OK":
-                            cell_style = 'background-color: red;'
-                        else:
-                            cell_style = ''
-                    else:
-                        if (qa_required == "Yes" and requirement_status != "OK") or (qa_required == "No" and requirement_status == "OK"):
-                            cell_style = 'background-color: red;'
-                        else:
-                            cell_style = ''
+            if highlight_color:
+                # Apply the same highlight color to QA Required and Requirement Status columns
+                if field in ["customfield_26027", "customfield_17201"]:
+                    cell_content = f"<td style='background-color: {highlight_color};'>{cell_content}</td>"
                 else:
-                    if requirement_status == "OK" or qa_required == "Yes":
-                        cell_style = 'background-color: blue;'
-                    else:
-                        cell_style = ''
+                    cell_content = f"<td>{cell_content}</td>"
             else:
-                cell_style = ''
+                cell_content = f"<td>{cell_content}</td>"
 
-            table_row += f"<td style='{cell_style}'>{cell_content}</td>"
+            # Include the modified cell_content in the table row
+            table_row += cell_content
 
-        # Add requirement status and QA Required? columns
-        if 'customfield_26027' in field_indices:
-            table_row = table_row.replace(f"<td>{html.escape(qa_required)}</td>", f"<td style='{cell_style}'>{html.escape(qa_required)}</td>")
-        if 'customfield_26424' in field_indices:
-            table_row = table_row.replace(f"<td>{html.escape(requirement_status)}</td>", f"<td style='{cell_style}'>{html.escape(requirement_status)}</td>")
-
-        table_row += "</tr>"
-        table_rows += table_row
-
-    # Return the full table HTML
-    return f"<table>{colgroup}{table_header}{table_rows}</table>"
+        # ... (rest of your code)

@@ -1293,11 +1293,15 @@ def generate_html_table(issues, fields):
  def generate_html_table(issues, fields):
     # Table header
     table_header = "<tr><th>Serial No</th><th>Story</th><th>Summary</th>"
-    for field in fields:
+    field_indices = {}  # To map field names to their column indices
+    for index, field in enumerate(fields, start=3):
+        # Replace custom field IDs with user-friendly names if available
         field_name = custom_field_mapping.get(field, field.replace('_', ' ').title())
         table_header += f"<th>{html.escape(field_name)}</th>"
+        field_indices[field] = index
     table_header += "</tr>"
 
+    # Define column widths for fixed table layout
     colgroup = """
     <colgroup>
         <col style="width: 5%;">
@@ -1309,13 +1313,15 @@ def generate_html_table(issues, fields):
 
     table_rows = ""
     for i, issue in enumerate(issues, start=1):
+        # Alternate row color: light gray for odd rows, white for even rows
         row_color = "#f2f2f2" if i % 2 != 0 else "#ffffff"
         table_row = f"<tr style='background-color:{row_color};'><td>{i}</td><td>{html.escape(issue['key'])}</td><td>{html.escape(issue['fields']['summary'])}</td>"
 
-        qa_required = ""
         qa_assignee = ""
+        qa_required = ""
         requirement_status = ""
 
+        # Process each field
         for field in fields:
             if field == 'subtasks':
                 subtasks = issue['fields'].get('subtasks', [])
@@ -1324,11 +1330,13 @@ def generate_html_table(issues, fields):
             else:
                 value = issue['fields'].get(field, "")
 
+            # Handle customfield_10005 (Sprint Name)
             if field == 'customfield_10005' and isinstance(value, list) and value:
-                value = value[0].split("name=")[-1].split(",")[0]
+                value = value[0].split("name=")[-1].split(",")[0]  # Extract name from string
 
+            # Handle customfield_26424 (Status)
             elif field == 'customfield_26424' and isinstance(value, list) and value:
-                value = value[0].get('status', '')
+                value = value[0].get('status', '')  # Extract status from dictionary
 
             elif isinstance(value, dict) and 'displayName' in value:
                 value = value['displayName']
@@ -1339,48 +1347,57 @@ def generate_html_table(issues, fields):
             elif isinstance(value, list):
                 value = ', '.join(str(v['name'] if isinstance(v, dict) and 'name' in v else v) for v in value)
 
+            # Replace None with an empty string to prevent merging issues
             if value is None:
                 value = ""
 
+            # Replace any "!" character in the value
             value = remove_special_characters(value)
 
-            # Capture the required fields for conditional formatting
+            # Capture QA Required? and Requirement Status
             if field == 'customfield_26027':
-                qa_required = str(value).replace("!", "").strip()
-
+                qa_required = str(value).replace("!", "").strip()  # Remove '!' and trim whitespace
             if field == 'customfield_17201':
-                qa_assignee = str(value).replace("!", "").strip()
+                qa_assignee = str(value).replace("!", "").strip()  # Remove '!' and trim whitespace
+            if field == 'customfield_26424':
+                requirement_status = value
 
-            if field == 'requirementstatus':
-                requirement_status = str(value).replace("!", "").strip()
-
-            # Escape the cell content
+            # Escape the cell content to prevent HTML parsing issues
             cell_content = html.escape(str(value))
 
-            # Apply your logic to the existing columns
-            if field == 'customfield_17201':  # QA Assignee column
-                if qa_assignee != "Not Available" and qa_required != "Yes":
-                    table_row += f"<td style='background-color: yellow;'>{cell_content}</td>"
+            # Determine the cell style
+            if field == 'customfield_17201':
+                if qa_assignee != "Not available":
+                    if qa_required != "Yes" and requirement_status != "OK":
+                        cell_style = 'background-color: yellow;'
+                    elif qa_required == "Not available":
+                        if requirement_status == "OK":
+                            cell_style = 'background-color: red;'
+                        else:
+                            cell_style = ''
+                    else:
+                        if (qa_required == "Yes" and requirement_status != "OK") or (qa_required == "No" and requirement_status == "OK"):
+                            cell_style = 'background-color: red;'
+                        else:
+                            cell_style = ''
                 else:
-                    table_row += f"<td>{cell_content}</td>"
-            elif field == 'customfield_26027':  # QA Required? column
-                if qa_assignee != "Not Available" and qa_required != "Yes":
-                    table_row += f"<td style='background-color: yellow;'>{cell_content}</td>"
-                elif qa_required == "Not Available" and requirement_status == "OK":
-                    table_row += f"<td style='background-color: red;'>{cell_content}</td>"
-                else:
-                    table_row += f"<td>{cell_content}</td>"
-            elif field == 'requirementstatus':  # Requirement Status column
-                if qa_assignee != "Not Available" and qa_required != "Yes" and requirement_status != "OK":
-                    table_row += f"<td style='background-color: yellow;'>{cell_content}</td>"
-                elif qa_required == "Not Available" and requirement_status == "OK":
-                    table_row += f"<td style='background-color: red;'>{cell_content}</td>"
-                else:
-                    table_row += f"<td>{cell_content}</td>"
+                    if requirement_status == "OK" or qa_required == "Yes":
+                        cell_style = 'background-color: blue;'
+                    else:
+                        cell_style = ''
             else:
-                table_row += f"<td>{cell_content}</td>"
+                cell_style = ''
+
+            table_row += f"<td style='{cell_style}'>{cell_content}</td>"
+
+        # Add requirement status and QA Required? columns
+        if 'customfield_26027' in field_indices:
+            table_row = table_row.replace(f"<td>{html.escape(qa_required)}</td>", f"<td style='{cell_style}'>{html.escape(qa_required)}</td>")
+        if 'customfield_26424' in field_indices:
+            table_row = table_row.replace(f"<td>{html.escape(requirement_status)}</td>", f"<td style='{cell_style}'>{html.escape(requirement_status)}</td>")
 
         table_row += "</tr>"
         table_rows += table_row
 
+    # Return the full table HTML
     return f"<table>{colgroup}{table_header}{table_rows}</table>"

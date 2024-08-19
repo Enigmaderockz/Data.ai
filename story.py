@@ -1406,3 +1406,32 @@ if field in ['subtasks', 'customfield_26027', 'customfield_26424']:
             table_header += f"<th>{html.escape(field_name)}</th>"
     
     table_header += "</tr>"
+
+
+table_style = """
+    <style>
+        table {
+            border-collapse: separate;
+            border-spacing: 0;
+            width: 100%;
+            font-family: Arial, sans-serif;
+            border-radius: 10px; /* Rounded corners */
+            overflow: hidden;
+        }
+        th, td {
+            padding: 8px;
+            text-align: left;
+            border: 1px solid #ddd;
+        }
+        th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        tr:hover {
+            background-color: #f1f1f1;
+        }
+    </style>
+    """

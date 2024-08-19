@@ -1435,3 +1435,4 @@ table_style = """
         }
     </style>
     """
+return table_style + "<table>" + colgroup + table_header + table_rows + "</table>"

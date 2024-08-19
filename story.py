@@ -1398,3 +1398,11 @@ for field in fields:
 
     cell_content = html.escape(str(value))
     # Process cell_content according to your existing logic
+
+
+if field in ['subtasks', 'customfield_26027', 'customfield_26424']:
+            table_header += f"<th style='background-color: #D3D3D3;'>{html.escape(field_name)}</th>"
+        else:
+            table_header += f"<th>{html.escape(field_name)}</th>"
+    
+    table_header += "</tr>"

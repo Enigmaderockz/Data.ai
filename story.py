@@ -1392,3 +1392,28 @@ def generate_html_table(issues, fields):
 
         table_row += "</tr>"
         table_rows += table_row
+
+
+# global approach
+
+qa_assignee = None
+qa_required = None
+requirement_status = None
+
+
+def generate_html_table(issues, fields):
+    global qa_assignee, qa_required, requirement_status
+    
+    # The rest of your function
+    for i, issue in enumerate(issues, start=1):
+        for field in fields:
+            value = issue['fields'].get(field, "")
+            
+            if field == 'customfield_26027':
+                qa_required = str(value).replace("!", "").strip()
+
+            elif field == 'customfield_17201':
+                qa_assignee = str(value).replace("!", "").strip()
+
+            elif field == 'customfield_26424':
+                requirement_status = value.get('status', '') if isinstance(value, list) and value else ''

@@ -1258,45 +1258,16 @@ def generate_html_table(issues, fields):
 
 
 
-# Capture values for QA Required?, QA Assignee, and Requirement Status
-            if field == 'customfield_17201':
-                qa_required = str(value).replace("!", "").strip()  # Remove '!' and trim whitespace
-            elif field == 'customfield_26424':
-                requirement_status = str(value).replace("!", "").strip()  # Remove '!' and trim whitespace
-            elif field == 'customfield_26027':
-                qa_assignee = str(value).replace("!", "").strip()  # Remove '!' and trim whitespace
-
-            # Escape the cell content to prevent HTML parsing issues
-            cell_content = html.escape(str(value))
-
-            # Apply highlighting rules
-            if field == 'customfield_17201':
-                if (qa_required == "Yes" and requirement_status != "OK") or (qa_required == "No" and requirement_status == "OK"):
-                    table_row += f"<td style='color: red;'>{cell_content}</td>"
-                else:
-                    table_row += f"<td>{cell_content}</td>"
-            elif field == 'customfield_26027':
-                if qa_assignee and qa_required != "Yes":
-                    table_row += f"<td style='background-color: yellow;'>{cell_content}</td>"
-                else:
-                    table_row += f"<td>{cell_content}</td>"
-            else:
-                table_row += f"<td>{cell_content}</td>"
+### add comments
 
 
-
-
-
-
-##########33 highlightinh
-
- def generate_html_table(issues, fields):
+def generate_html_table(issues, fields):
     # Table header
     table_header = "<tr><th>Serial No</th><th>Story</th><th>Summary</th>"
     for field in fields:
         field_name = custom_field_mapping.get(field, field.replace('_', ' ').title())
         table_header += f"<th>{html.escape(field_name)}</th>"
-    table_header += "</tr>"
+    table_header += "<th>Comments</th></tr>"  # Add Comments column to the header
 
     # Define column widths for fixed table layout
     colgroup = """
@@ -1306,17 +1277,14 @@ def generate_html_table(issues, fields):
         <col style="width: 20%;">
         {col_widths}
     </colgroup>
-    """.format(col_widths="".join(['<col style="width: 10%;">' for _ in fields]))
+    """.format(col_widths="".join(['<col style="width: 10%;">' for _ in fields]) + '<col style="width: 10%;">')
 
     table_rows = ""
     for i, issue in enumerate(issues, start=1):
         row_color = "#f2f2f2" if i % 2 != 0 else "#ffffff"
         table_row = f"<tr style='background-color:{row_color};'><td>{i}</td><td>{html.escape(issue['key'])}</td><td>{html.escape(issue['fields']['summary'])}</td>"
-
-        # Initialize variables to None
-        qa_assignee = None
-        qa_required = None
-        requirement_status = None
+        
+        comment = "NA"  # Default value for the Comments column
 
         for field in fields:
             value = issue['fields'].get(field, "")
@@ -1326,94 +1294,50 @@ def generate_html_table(issues, fields):
                 value = ', '.join(subtask_keys)
             elif field == 'customfield_10005' and isinstance(value, list) and value:
                 value = value[0].split("name=")[-1].split(",")[0]
-
             elif field == 'customfield_26424' and isinstance(value, list) and value:
                 value = value[0].get('status', '')  # Extract status from dictionary
                 requirement_status = value 
-
             elif isinstance(value, dict) and 'displayName' in value:
                 value = value['displayName']
             elif isinstance(value, dict) and 'name' in value:
                 value = value['name']
             elif isinstance(value, dict) and 'value' in value:
-                value = value['value']	
+                value = value['value']
             elif isinstance(value, list):
                 value = ', '.join(str(v['name'] if isinstance(v, dict) and 'name' in v else v) for v in value)
-
+            
             if value is None or value == "":
                 value = "Not Available"
             else:
                 value = remove_special_characters(value)
-
-            if field == 'customfield_26027':
-                qa_required = str(value).replace("!", "").strip()
-
-            elif field == 'customfield_17201':
-                qa_assignee = str(value).replace("!", "").strip()
-
+            
             cell_content = html.escape(str(value))
 
-            # Apply the highlighting rules
-            if field == "customfield_20627":
-                if qa_assignee is not None:
-                    if qa_assignee != "Not Available": 
-                        if qa_required != "Yes" and requirement_status != "OK":
-                            table_row += (
-                                f"<td style='background-color: yellow;'>{cell_content}</td>" +
-                                f"<td style='background-color: yellow;'>{qa_required}</td>" +
-                                f"<td style='background-color: yellow;'>{requirement_status}</td>")
-                        elif qa_required == "Not Available":
-                            if requirement_status == "OK":
-                                table_row += (f"<td style='background-color: red;'>{cell_content}</td>")
-                            else:
-                                table_row += f"<td>{cell_content}</td>"
-                        else:
-                            if (qa_required == "Yes" and requirement_status != "OK") or (qa_required == "No" and requirement_status == "OK"):
-                                table_row += f"<td style='background-color: red;'>{cell_content}</td>"
-                            else:
-                                table_row += f"<td>{cell_content}</td>"
-                    elif qa_assignee == "Not Available": 
-                        if requirement_status == "OK" or qa_required == "Yes":
-                            table_row += f"<td style='background-color: blue;'>{cell_content}</td>"
+            if field == "customfield_20627":  # Assuming this is the QA Assignee field
+                if qa_assignee != "Not Available":
+                    if qa_required != "Yes" and requirement_status != "OK":
+                        table_row += f"<td style='background-color: yellow;'>{cell_content}</td>"
+                        comment = "Yellow column"
+                    elif qa_required == "Not Available" and requirement_status == "OK":
+                        table_row += f"<td style='background-color: red;'>{cell_content}</td>"
+                        comment = "Red column"
+                    else:
+                        if (qa_required == "Yes" and requirement_status != "OK") or (qa_required == "No" and requirement_status == "OK"):
+                            table_row += f"<td style='background-color: red;'>{cell_content}</td>"
+                            comment = "Red column"
                         else:
                             table_row += f"<td>{cell_content}</td>"
-                else:
-                    table_row += f"<td>{cell_content}</td>"
-
-            elif field == "customfield_26424":
-                if qa_assignee is not None:
-                    print(qa_assignee)
-                else:
-                    print("qa_assignee is not defined")
-                table_row += f"<td>{cell_content}</td>"
-
+                elif qa_assignee == "Not Available":
+                    if requirement_status == "OK" or qa_required == "Yes":
+                        table_row += f"<td style='background-color: blue;'>{cell_content}</td>"
+                        comment = "Blue column"
+                    else:
+                        table_row += f"<td>{cell_content}</td>"
             else:
                 table_row += f"<td>{cell_content}</td>"
 
+        table_row += f"<td>{html.escape(comment)}</td>"  # Add the Comments column value
         table_row += "</tr>"
         table_rows += table_row
 
-
-# global approach
-
-qa_assignee = None
-qa_required = None
-requirement_status = None
-
-
-def generate_html_table(issues, fields):
-    global qa_assignee, qa_required, requirement_status
-    
-    # The rest of your function
-    for i, issue in enumerate(issues, start=1):
-        for field in fields:
-            value = issue['fields'].get(field, "")
-            
-            if field == 'customfield_26027':
-                qa_required = str(value).replace("!", "").strip()
-
-            elif field == 'customfield_17201':
-                qa_assignee = str(value).replace("!", "").strip()
-
-            elif field == 'customfield_26424':
-                requirement_status = value.get('status', '') if isinstance(value, list) and value else ''
+    return f"<table>{colgroup}{table_header}{table_rows}</table>"

@@ -1341,3 +1341,60 @@ def generate_html_table(issues, fields):
         table_rows += table_row
 
     return f"<table>{colgroup}{table_header}{table_rows}</table>"
+
+
+##333 rnhanced conditions
+
+for field in fields:
+    value = issue['fields'].get(field, "")
+
+    if field == 'subtasks':
+        # Handle subtasks as a list of keys
+        subtasks = value if isinstance(value, list) else []
+        subtask_keys = [subtask['key'] for subtask in subtasks if 'key' in subtask]
+        value = ', '.join(subtask_keys)
+
+    elif field == 'customfield_10005':
+        # Handle customfield_10005 as a list, extract 'name' if present
+        if isinstance(value, list) and value:
+            # Ensure that the string split logic only occurs if it's a string
+            if isinstance(value[0], str) and "name=" in value[0]:
+                value = value[0].split("name=")[-1].split(",")[0]
+            else:
+                value = "Not Available"
+        else:
+            value = "Not Available"
+
+    elif field == 'customfield_26424':
+        # Handle customfield_26424 as a list of dictionaries, extract 'status'
+        if isinstance(value, list) and value:
+            status_dict = value[0] if isinstance(value[0], dict) else {}
+            value = status_dict.get('status', "Not Available")
+            requirement_status = value  # Preserved for use later in highlighting logic
+        else:
+            value = "Not Available"
+
+    elif isinstance(value, dict):
+        # Handle dictionary fields like 'displayName', 'name', or 'value'
+        if 'displayName' in value:
+            value = value['displayName']
+        elif 'name' in value:
+            value = value['name']
+        elif 'value' in value:
+            value = value['value']
+        else:
+            value = "Not Available"
+
+    elif isinstance(value, list):
+        # Handle list fields by extracting names or using string representations
+        value = ', '.join(
+            str(v['name'] if isinstance(v, dict) and 'name' in v else v) 
+            for v in value
+        ) if value else "Not Available"
+
+    # Handle cases where value is None or empty
+    if not value:
+        value = "Not Available"
+
+    cell_content = html.escape(str(value))
+    # Process cell_content according to your existing logic

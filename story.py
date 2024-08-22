@@ -1436,3 +1436,6 @@ table_style = """
     </style>
     """
 return table_style + "<table>" + colgroup + table_header + table_rows + "</table>"
+
+comment = "<ul style='margin:0; padding-left:15px;'><li>Blue</li><li>column</li></ul>"
+                    else:

@@ -1437,5 +1437,36 @@ table_style = """
     """
 return table_style + "<table>" + colgroup + table_header + table_rows + "</table>"
 
-comment = "<ul style='margin:0; padding-left:15px;'><li>Blue</li><li>column</li></ul>"
-                    else:
+............................
+
+    table_style = """
+<style>
+    table {
+        border-collapse: separate;
+        border-spacing: 0;
+        width: 100%;
+        font-family: Arial, sans-serif;
+        border-radius: 10px; /* Rounded corners */
+        overflow: hidden;
+        table-layout: fixed; /* Fixed layout for consistent column widths */
+    }
+    th, td {
+        padding: 8px;
+        text-align: left;
+        border: 1px solid #ddd;
+        word-wrap: break-word; /* Ensures long content wraps within the cell */
+        max-width: 150px; /* Max width for cells to prevent them from expanding too much */
+    }
+    th {
+        background-color: #f2f2f2;
+        font-weight: bold;
+    }
+    tr:nth-child(even) {
+        background-color: #f9f9f9;
+    }
+    tr:hover {
+        background-color: #f1f1f1;
+    }
+</style>
+"""
+

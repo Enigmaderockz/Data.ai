@@ -1470,3 +1470,4 @@ return table_style + "<table>" + colgroup + table_header + table_rows + "</table
 </style>
 """
 
+s_column = Date.parse("MM/dd/yyyy HH.mm.ss", s_column).format("yyyy-MM-dd")

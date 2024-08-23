@@ -1471,3 +1471,6 @@ return table_style + "<table>" + colgroup + table_header + table_rows + "</table
 """
 
 s_column = Date.parse("MM/dd/yyyy HH.mm.ss", s_column).format("yyyy-MM-dd")
+
+SELECT TO_CHAR(CAST('2024-07-19 00:00:00' AS TIMESTAMP), 'MM/DD/YYYY HH24.MI.SS') 
+FROM your_table;

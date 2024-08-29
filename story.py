@@ -1720,3 +1720,7 @@ def generate_html_table(issues, fields):
         final_comment = acceptance_criteria_comment
        
 
+
+qa_assignee = issue['fields'].get("customfield_17201", "Not Available")
+qa_required = issue['fields'].get("customfield_20627", "Not Available")
+requirement_status = issue['fields'].get("customfield_26424", "Not Available")

@@ -1483,10 +1483,12 @@ def generate_html_table(issues, fields):
     # Table header
     table_header = "<tr><th>Serial No</th><th>Story</th><th>Summary</th>"
     for field in fields:
+        # Replace custom field IDs with user-friendly names if available
         field_name = custom_field_mapping.get(field, field.replace('_', ' ').title())
         table_header += f"<th>{html.escape(field_name)}</th>"
     table_header += "</tr>"
 
+    # Define column widths for fixed table layout
     colgroup = """
     <colgroup>
         <col style="width: 5%;">
@@ -1498,13 +1500,16 @@ def generate_html_table(issues, fields):
 
     table_rows = ""
     for i, issue in enumerate(issues, start=1):
+        # Alternate row color: light gray for odd rows, white for even rows
         row_color = "#f2f2f2" if i % 2 != 0 else "#ffffff"
         table_row = f"<tr style='background-color:{row_color};'><td>{i}</td><td>{html.escape(issue['key'])}</td><td>{html.escape(issue['fields']['summary'])}</td>"
 
-        issue_type = issue['fields']['issuetype']['name']
-        qa_assignee = issue['fields'].get("customfield_17201", "Not Available")
-        qa_required = issue['fields'].get("customfield_20627", "Not Available")
-        requirement_status = issue['fields'].get("customfield_26424", "Not Available")
+        # Initialize the comments and other variables
+        combined_comment = "No issues"
+        acceptance_criteria_comment = ""
+        qa_required_comment = ""
+
+        # Extract acceptance criteria
         acceptance_criteria = issue['fields'].get('customfield_1110', '')
         acceptance_length = len(acceptance_criteria)
 
@@ -1518,12 +1523,14 @@ def generate_html_table(issues, fields):
                 value = value[0].split("name=")[-1].split(",")[0]
             elif field == 'customfield_26424' and isinstance(value, list) and value:
                 value = value[0].get('status', '')
-            elif isinstance(value, dict) and 'displayName' in value:
-                value = value['displayName']
-            elif isinstance(value, dict) and 'name' in value:
-                value = value['name']
-            elif isinstance(value, dict) and 'value' in value:
-                value = value['value']
+                requirement_status = value
+            elif isinstance(value, dict):
+                if 'displayName' in value:
+                    value = value['displayName']
+                elif 'name' in value:
+                    value = value['name']
+                elif 'value' in value:
+                    value = value['value']
             elif isinstance(value, list):
                 value = ', '.join(str(v['name'] if isinstance(v, dict) and 'name' in v else v) for v in value)
 
@@ -1532,48 +1539,65 @@ def generate_html_table(issues, fields):
             else:
                 value = remove_special_characters(value)
 
-            # Apply the new acceptance criteria rule
+            # Capture QA Required? for logic check and clean it up
+            if field == 'customfield_26027':
+                qa_required = str(value).replace("!", "").strip()
+
+            elif field == 'customfield_17201':
+                qa_assignee = str(value).replace("!", "").strip()
+
+            # Escape the cell content to prevent HTML parsing issues
+            cell_content = html.escape(str(value))
+
+            # Apply the acceptance criteria rule and update the comment
             if field == "customfield_1110":  # Acceptance Criteria
                 if acceptance_length == 0:
-                    table_row += f"<td style='background-color: red;'>{html.escape(value)}<br><small style='color: red;'>No acceptance criteria</small></td>"
+                    table_row += f"<td style='background-color: blue;'>{cell_content}</td>"
+                    acceptance_criteria_comment = "less"
                 elif acceptance_length < 30:
-                    table_row += f"<td style='background-color: yellow;'>{html.escape(value)}<br><small style='color: yellow;'>Acceptance criteria might be insufficient</small></td>"
+                    table_row += f"<td style='background-color: blue;'>{cell_content}</td>"
+                    acceptance_criteria_comment = "more"
                 else:
-                    table_row += f"<td>{html.escape(value)}</td>"
+                    table_row += f"<td>{cell_content}</td>"
 
-            # Apply the existing highlighting rules
-            elif field == "customfield_20627":  # QA Required
+            # Apply the QA Required? and Requirement Status rules and update the comment
+            elif field == "customfield_20627":
                 if qa_assignee != "Not Available":
                     if qa_required != "Yes" and requirement_status != "OK":
-                        table_row += (
-                            f"<td style='background-color: yellow;'>{qa_assignee}</td>"
-                            f"<td style='background-color: yellow;'>{qa_required}</td>"
-                            f"<td style='background-color: yellow;'>{requirement_status}</td>"
-                        )
+                        table_row += f"<td style='background-color: yellow;'>{cell_content}</td>"
+                        qa_required_comment = "Yellow column"
                     elif qa_required == "Not Available":
                         if requirement_status == "OK":
-                            table_row += f"<td style='background-color: red;'>{qa_assignee}</td>"
+                            table_row += f"<td style='background-color: red;'>{cell_content}</td>"
+                            qa_required_comment = "Red column"
                         else:
-                            table_row += f"<td>{qa_assignee}</td>"
+                            table_row += f"<td>{cell_content}</td>"
                     else:
                         if (qa_required == "Yes" and requirement_status != "OK") or (qa_required == "No" and requirement_status == "OK"):
-                            table_row += f"<td style='background-color: red;'>{qa_assignee}</td>"
+                            table_row += f"<td style='background-color: blue;'>{cell_content}</td>"
+                            qa_required_comment = "Blue column"
                         else:
-                            table_row += f"<td>{qa_assignee}</td>"
+                            table_row += f"<td>{cell_content}</td>"
                 elif qa_assignee == "Not Available":
                     if requirement_status == "OK" or qa_required == "Yes":
-                        table_row += f"<td style='background-color: blue;'>{qa_assignee}</td>"
+                        table_row += f"<td style='background-color: blue;'>{cell_content}</td>"
+                        qa_required_comment = "Blue column"
                     else:
-                        table_row += f"<td>{qa_assignee}</td>"
+                        table_row += f"<td>{cell_content}</td>"
                 else:
-                    table_row += f"<td>{qa_assignee}</td>"
+                    table_row += f"<td>{cell_content}</td>"
 
-            # Other fields
-            else:
-                table_row += f"<td>{html.escape(value)}</td>"
+        # Combine comments from both conditions
+        if acceptance_criteria_comment and qa_required_comment:
+            combined_comment = f"{acceptance_criteria_comment}, {qa_required_comment}"
+        elif acceptance_criteria_comment:
+            combined_comment = acceptance_criteria_comment
+        elif qa_required_comment:
+            combined_comment = qa_required_comment
 
+        # Finalize the row and add the combined comment
+        table_row += f"<td>{html.escape(combined_comment)}</td>"
         table_row += "</tr>"
         table_rows += table_row
 
-    # Return or add table_rows to your final email content
-    return colgroup + table_header + table_rows
+    return f"<table>{colgroup}{table_header}{table_rows}</table>"

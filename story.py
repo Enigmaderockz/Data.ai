@@ -1723,4 +1723,10 @@ def generate_html_table(issues, fields):
 
 qa_assignee = issue['fields'].get("customfield_17201", "Not Available")
 qa_required = issue['fields'].get("customfield_20627", "Not Available")
+
+# Ensure qa_required is not None before calling get
+if qa_required and isinstance(qa_required, dict):
+    qa_name = qa_required.get('value', 'Not Available')
+else:
+    qa_name = 'Not Available'
 requirement_status = issue['fields'].get("customfield_26424", "Not Available")

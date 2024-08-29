@@ -1601,3 +1601,123 @@ def generate_html_table(issues, fields):
         table_rows += table_row
 
     return f"<table>{colgroup}{table_header}{table_rows}</table>"
+
+
+    #############33 modified
+
+    def generate_html_table(issues, fields):
+    # Table header
+    table_header = "<tr><th>Serial No</th><th>Story</th><th>Summary</th>"
+    for field in fields:
+        # Replace custom field IDs with user-friendly names if available
+        field_name = custom_field_mapping.get(field, field.replace('_', ' ').title())
+        table_header += f"<th>{html.escape(field_name)}</th>"
+    table_header += "</tr>"
+
+    # Define column widths for fixed table layout
+    colgroup = """
+    <colgroup>
+        <col style="width: 5%;">
+        <col style="width: 15%;">
+        <col style="width: 20%;">
+        {col_widths}
+    </colgroup>
+    """.format(col_widths="".join(['<col style="width: 10%;">' for _ in fields]))
+
+    table_rows = ""
+    for i, issue in enumerate(issues, start=1):
+        # Alternate row color: light gray for odd rows, white for even rows
+        row_color = "#f2f2f2" if i % 2 != 0 else "#ffffff"
+        table_row = f"<tr style='background-color:{row_color};'><td>{i}</td><td>{html.escape(issue['key'])}</td><td>{html.escape(issue['fields']['summary'])}</td>"
+        
+        # Initialize the comment variable
+        acceptance_criteria_comment = ""
+        qa_required_comment = ""
+        
+        issue_type = issue['fields'].get('issuetype', {}).get('name', "")
+        
+        for field in fields:
+            value = issue['fields'].get(field, "")
+            if field == 'subtasks':
+                subtasks = issue['fields'].get('subtasks', [])
+                subtask_keys = [subtask['key'] for subtask in subtasks]
+                value = ', '.join(subtask_keys)
+            # Handle customfield_10005 (Sprint Name)
+            elif field == 'customfield_10005' and isinstance(value, list) and value:
+                value = value[0].split("name=")[-1].split(",")[0]  # Extract name from string
+
+            # Handle customfield_26424 (Status)
+            elif field == 'customfield_26424' and isinstance(value, list) and value:
+                value = value[0].get('status', '')  # Extract status from dictionary
+
+            elif isinstance(value, dict) and 'displayName' in value:
+                value = value['displayName']
+            elif isinstance(value, dict) and 'name' in value:
+                value = value['name']
+            elif isinstance(value, dict) and 'value' in value:
+                value = value['value']	
+            elif isinstance(value, list):
+                value = ', '.join(str(v['name'] if isinstance(v, dict) and 'name' in v else v) for v in value)
+
+            # Replace None with an empty string to prevent merging issues
+            if value is None or value == "":
+                value = "Not Available"
+            else:
+                value = remove_special_characters(value)  # Removing special characters
+
+            # Capture QA Required? for logic check and clean it up
+            if field == 'customfield_26027':
+                qa_required = str(value).replace("!", "").strip()  # Remove '!' and trim whitespace
+            
+            elif field == 'customfield_17201':
+                qa_assignee = str(value).replace("!", "").strip()  # Remove '!' and trim whitespace
+
+            # Escape the cell content to prevent HTML parsing issues
+            cell_content = html.escape(str(value))
+
+            # Apply the acceptance criteria rule only for User Story issue type
+            if issue_type == "User Story":
+                if field == "customfield_1110":  # Acceptance Criteria
+                    acceptance_length = len(value)
+                    if acceptance_length == 0:
+                        table_row += f"<td style='background-color: blue;'>{cell_content}</td>"
+                        acceptance_criteria_comment = "less"
+                    elif acceptance_length < 30:
+                        table_row += f"<td style='background-color: blue;'>{cell_content}</td>"
+                        acceptance_criteria_comment = "more"
+                    else:
+                        table_row += f"<td>{cell_content}</td>"
+
+            # Apply the highlighting rules
+            if field == "customfield_20627":
+                if qa_assignee != "Not Available":
+                    if qa_required != "Yes" and requirement_status != "OK":
+                        table_row += f"<td style='background-color: yellow;'>{cell_content}</td>"
+                        qa_required_comment = "Yellow column"
+                    elif qa_required == "Not Available":
+                        # Case where QA Required? is Not available
+                        if requirement_status == "OK":
+                            table_row += f"<td style='background-color: red;'>{cell_content}</td>"
+                            qa_required_comment = "Red column"
+                        else:
+                            table_row += f"<td>{cell_content}</td>"
+                    else:
+                        if (qa_required == "Yes" and requirement_status != "OK") or (qa_required == "No" and requirement_status == "OK"):
+                            table_row += f"<td style='background-color: blue;'>{cell_content}</td>"
+                            qa_required_comment = "Blue column"
+                        else:
+                            table_row += f"<td>{cell_content}</td>"
+                elif qa_assignee == "Not Available":
+                    if requirement_status == "OK" or qa_required == "Yes":
+                        table_row += f"<td style='background-color: blue;'>{cell_content}</td>"
+                        qa_required_comment = "Blue column"
+                    else:
+                        table_row += f"<td>{cell_content}</td>"
+
+            # Finalize the cell content
+            table_row += f"<td>{html.escape(cell_content)}</td>"
+
+        # Merge the comments if available
+        final_comment = acceptance_criteria_comment
+       
+

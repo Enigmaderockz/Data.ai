@@ -1676,17 +1676,16 @@ def generate_html_table(issues, fields):
             cell_content = html.escape(str(value))
 
             # Apply the acceptance criteria rule only for User Story issue type
-            if issue_type == "User Story":
-                if field == "customfield_1110":  # Acceptance Criteria
-                    acceptance_length = len(value)
-                    if acceptance_length == 0:
-                        table_row += f"<td style='background-color: blue;'>{cell_content}</td>"
-                        acceptance_criteria_comment = "less"
-                    elif acceptance_length < 30:
-                        table_row += f"<td style='background-color: blue;'>{cell_content}</td>"
-                        acceptance_criteria_comment = "more"
-                    else:
-                        table_row += f"<td>{cell_content}</td>"
+            if issue_type == "User Story" and field == "customfield_1110":  # Acceptance Criteria
+                acceptance_length = len(value) if value else 0
+                if acceptance_length == 0:
+                    table_row += f"<td style='background-color: blue;'>{cell_content}</td>"
+                    acceptance_criteria_comment = "less"
+                elif acceptance_length < 30:
+                    table_row += f"<td style='background-color: blue;'>{cell_content}</td>"
+                    acceptance_criteria_comment = "more"
+                else:
+                    table_row += f"<td>{cell_content}</td>"
 
             # Apply the highlighting rules
             if field == "customfield_20627":

@@ -1474,3 +1474,106 @@ s_column = Date.parse("MM/dd/yyyy HH.mm.ss", s_column).format("yyyy-MM-dd")
 
 SELECT TO_CHAR(CAST('2024-07-19 00:00:00' AS TIMESTAMP), 'MM/DD/YYYY HH24.MI.SS') 
 FROM your_table;
+
+
+###################################333 acceptance criteria condition #############################
+
+
+def generate_html_table(issues, fields):
+    # Table header
+    table_header = "<tr><th>Serial No</th><th>Story</th><th>Summary</th>"
+    for field in fields:
+        field_name = custom_field_mapping.get(field, field.replace('_', ' ').title())
+        table_header += f"<th>{html.escape(field_name)}</th>"
+    table_header += "</tr>"
+
+    colgroup = """
+    <colgroup>
+        <col style="width: 5%;">
+        <col style="width: 15%;">
+        <col style="width: 20%;">
+        {col_widths}
+    </colgroup>
+    """.format(col_widths="".join(['<col style="width: 10%;">' for _ in fields]))
+
+    table_rows = ""
+    for i, issue in enumerate(issues, start=1):
+        row_color = "#f2f2f2" if i % 2 != 0 else "#ffffff"
+        table_row = f"<tr style='background-color:{row_color};'><td>{i}</td><td>{html.escape(issue['key'])}</td><td>{html.escape(issue['fields']['summary'])}</td>"
+
+        issue_type = issue['fields']['issuetype']['name']
+        qa_assignee = issue['fields'].get("customfield_17201", "Not Available")
+        qa_required = issue['fields'].get("customfield_20627", "Not Available")
+        requirement_status = issue['fields'].get("customfield_26424", "Not Available")
+        acceptance_criteria = issue['fields'].get('customfield_1110', '')
+        acceptance_length = len(acceptance_criteria)
+
+        for field in fields:
+            value = issue['fields'].get(field, "")
+            if field == 'subtasks':
+                subtasks = issue['fields'].get('subtasks', [])
+                subtask_keys = [subtask['key'] for subtask in subtasks]
+                value = ', '.join(subtask_keys)
+            elif field == 'customfield_10005' and isinstance(value, list) and value:
+                value = value[0].split("name=")[-1].split(",")[0]
+            elif field == 'customfield_26424' and isinstance(value, list) and value:
+                value = value[0].get('status', '')
+            elif isinstance(value, dict) and 'displayName' in value:
+                value = value['displayName']
+            elif isinstance(value, dict) and 'name' in value:
+                value = value['name']
+            elif isinstance(value, dict) and 'value' in value:
+                value = value['value']
+            elif isinstance(value, list):
+                value = ', '.join(str(v['name'] if isinstance(v, dict) and 'name' in v else v) for v in value)
+
+            if value is None or value == "":
+                value = "Not Available"
+            else:
+                value = remove_special_characters(value)
+
+            # Apply the new acceptance criteria rule
+            if field == "customfield_1110":  # Acceptance Criteria
+                if acceptance_length == 0:
+                    table_row += f"<td style='background-color: red;'>{html.escape(value)}<br><small style='color: red;'>No acceptance criteria</small></td>"
+                elif acceptance_length < 30:
+                    table_row += f"<td style='background-color: yellow;'>{html.escape(value)}<br><small style='color: yellow;'>Acceptance criteria might be insufficient</small></td>"
+                else:
+                    table_row += f"<td>{html.escape(value)}</td>"
+
+            # Apply the existing highlighting rules
+            elif field == "customfield_20627":  # QA Required
+                if qa_assignee != "Not Available":
+                    if qa_required != "Yes" and requirement_status != "OK":
+                        table_row += (
+                            f"<td style='background-color: yellow;'>{qa_assignee}</td>"
+                            f"<td style='background-color: yellow;'>{qa_required}</td>"
+                            f"<td style='background-color: yellow;'>{requirement_status}</td>"
+                        )
+                    elif qa_required == "Not Available":
+                        if requirement_status == "OK":
+                            table_row += f"<td style='background-color: red;'>{qa_assignee}</td>"
+                        else:
+                            table_row += f"<td>{qa_assignee}</td>"
+                    else:
+                        if (qa_required == "Yes" and requirement_status != "OK") or (qa_required == "No" and requirement_status == "OK"):
+                            table_row += f"<td style='background-color: red;'>{qa_assignee}</td>"
+                        else:
+                            table_row += f"<td>{qa_assignee}</td>"
+                elif qa_assignee == "Not Available":
+                    if requirement_status == "OK" or qa_required == "Yes":
+                        table_row += f"<td style='background-color: blue;'>{qa_assignee}</td>"
+                    else:
+                        table_row += f"<td>{qa_assignee}</td>"
+                else:
+                    table_row += f"<td>{qa_assignee}</td>"
+
+            # Other fields
+            else:
+                table_row += f"<td>{html.escape(value)}</td>"
+
+        table_row += "</tr>"
+        table_rows += table_row
+
+    # Return or add table_rows to your final email content
+    return colgroup + table_header + table_rows

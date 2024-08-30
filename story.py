@@ -1730,3 +1730,7 @@ if qa_required and isinstance(qa_required, dict):
 else:
     qa_name = 'Not Available'
 requirement_status = issue['fields'].get("customfield_26424", "Not Available")
+
+
+if field == 'attachment':
+                    value = ', '.join(html.escape(attachment['filename']) for attachment in value) or "No Attachments"

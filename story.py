@@ -1731,6 +1731,7 @@ else:
     qa_name = 'Not Available'
 requirement_status = issue['fields'].get("customfield_26424", "Not Available")
 
-
-if field == 'attachment':
-                    value = ', '.join(html.escape(attachment['filename']) for attachment in value) or "No Attachments"
+# Make the story key a clickable link
+        story_link = f'<a href="{issue_url}" target="_blank">{html.escape(issue_key)}</a>'
+        
+        table_row = f"<tr style='background-color:{row_color};'><td>{i}</td><td>{story_link}</td><td>{html.escape(issue_summary)}</td>"

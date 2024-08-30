@@ -1732,6 +1732,9 @@ else:
 requirement_status = issue['fields'].get("customfield_26424", "Not Available")
 
 # Make the story key a clickable link
+
+issue_key = issue['key']
+        issue_url = f'{jira_url}/browse/{issue_key}'
         story_link = f'<a href="{issue_url}" target="_blank">{html.escape(issue_key)}</a>'
         
         table_row = f"<tr style='background-color:{row_color};'><td>{i}</td><td>{story_link}</td><td>{html.escape(issue_summary)}</td>"

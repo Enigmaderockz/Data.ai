@@ -1966,3 +1966,32 @@ def process_issues(jql_query, all_email_content, fields):
         email_content += "<p style='color:red;'>No data available for this JQL.</p>"
 
     all_email_content.append(email_content)
+
+
+
+ # Create an expandable/collapsible section for the component's results
+    email_content = f"""
+    <div>
+        <!-- Hidden checkbox to control the expand/collapse -->
+        <input type="checkbox" id="expand_{component_name}" style="display:none;">
+        
+        <!-- Label that acts as a button to expand/collapse -->
+        <label for="expand_{component_name}" style="cursor:pointer; color: blue; text-decoration: underline;">
+            <strong>Results for component: {component_name}</strong>
+        </label>
+        
+        <!-- The content that will be expanded/collapsed -->
+        <div id="content_{component_name}" style="display:none; margin-top:10px;">
+            {generate_html_table(issues, fields)}
+        </div>
+        
+        <!-- JavaScript to toggle visibility of the content -->
+        <script>
+            document.querySelector('label[for="expand_{component_name}"]').onclick = function() {{
+                var content = document.getElementById('content_{component_name}');
+                content.style.display = content.style.display === 'none' ? 'block' : 'none';
+            }};
+        </script>
+    </div>
+    <br>
+    """

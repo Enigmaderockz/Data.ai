@@ -1950,4 +1950,5 @@ def send_email(subject, body):
     except Exception as
 
   # Add the JQL query itself to the email content
-    email_content += f"<p><strong>JQL:</strong> {html.escape(jql_query)}</p><br>"
+    # Add the JQL query with blue color styling
+    email_content += f"<p><strong>JQL:</strong> <span style='color:blue;'>{html.escape(jql_query)}</span></p><br>"

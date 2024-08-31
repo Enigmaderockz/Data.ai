@@ -1949,3 +1949,5 @@ def send_email(subject, body):
         logging.info(f"Email sent to {recipient_email}")
     except Exception as
 
+  # Add the JQL query itself to the email content
+    email_content += f"<p><strong>JQL:</strong> {html.escape(jql_query)}</p><br>"

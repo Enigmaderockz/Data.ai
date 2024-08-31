@@ -1731,10 +1731,221 @@ else:
     qa_name = 'Not Available'
 requirement_status = issue['fields'].get("customfield_26424", "Not Available")
 
-# Make the story key a clickable link
+################# clickabale link
 
-issue_key = issue['key']
-        issue_url = f'{jira_url}/browse/{issue_key}'
-        story_link = f'<a href="{issue_url}" target="_blank">{html.escape(issue_key)}</a>'
+import requests
+from requests_kerberos import HTTPKerberosAuth, REQUIRED
+import concurrent.futures
+import time
+import conf  # Import the configuration file
+import logging
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+import html  # For escaping HTML content
+
+# Set up logging
+logging.basicConfig(level=logging.INFO, format='%(asctime%s') - %(levelname)s - %(message)s')
+
+# Jira server URL
+jira_url = 'https://your-company-jira.com'
+
+# Kerberos authentication
+kerberos_auth = HTTPKerberosAuth(mutual_authentication=REQUIRED)
+
+def fetch_all_issues(jql_query):
+    start_at = 0
+    max_results = 1000
+    all_issues = []
+    retry_attempts = 3
+    retry_delay = 5
+
+    while True:
+        params = {
+            'jql': jql_query,
+            'startAt': start_at,
+            'maxResults': max_results
+        }
+
+        for attempt in range(retry_attempts):
+            try:
+                response = requests.get(f'{jira_url}/rest/api/2/search', params=params, auth=kerberos_auth)
+
+                if response.status_code == 200:
+                    issues = response.json()['issues']
+                    all_issues.extend(issues)
+                    if len(issues) < max_results:
+                        return all_issues
+                    start_at += max_results
+                    break
+                else:
+                    logging.error(f"Failed to retrieve issues for JQL '{jql_query}': {response.status_code} - {response.text}")
+                    if response.status_code == 401:  # Unauthorized
+                        logging.warning("Authentication issue, retrying...")
+                        time.sleep(retry_delay)
+            except requests.exceptions.RequestException as e:
+                logging.error(f"Request failed: {e}")
+                time.sleep(retry_delay)
+
+        if attempt == retry_attempts - 1:
+            logging.error(f"Failed to retrieve issues for JQL '{jql_query}' after {retry_attempts} attempts.")
+            break
+
+    return all_issues
+
+
+def generate_html_table(issues, fields):
+    # Table header
+    table_header = "<tr><th>Serial No</th><th>Story</th><th>Summary</th>"
+    for field in fields:
+        # Replace custom field IDs with user-friendly names if available
+        field_name = custom_field_mapping.get(field, field.replace('_', ' ').title())
+        table_header += f"<th>{html.escape(field_name)}</th>"
+    table_header += "</tr>"
+
+    # Define column widths for fixed table layout
+    colgroup = """
+    <colgroup>
+        <col style="width: 5%;">
+        <col style="width: 15%;">
+        <col style="width: 20%;">
+        {col_widths}
+    </colgroup>
+    """.format(col_widths="".join(['<col style="width: 10%;">' for _ in fields]))
+
+    table_rows = ""
+    for i, issue in enumerate(issues, start=1):
+        # Alternate row color: light gray for odd rows, white for even rows
+        row_color = "#f2f2f2" if i % 2 != 0 else "#ffffff"
         
-        table_row = f"<tr style='background-color:{row_color};'><td>{i}</td><td>{story_link}</td><td>{html.escape(issue_summary)}</td>"
+        # Create the link for the issue key
+        issue_key_link = f'<a href="{jira_url}/browse/{issue["key"]}" target="_blank">{html.escape(issue["key"])}</a>'
+
+        table_row = f"<tr style='background-color:{row_color};'><td>{i}</td><td>{issue_key_link}</td><td>{html.escape(issue['fields']['summary'])}</td>"
+        
+        # Initialize comment variables
+        acceptance_criteria_comment = ""
+        qa_required_comment = ""
+        requirement_status = ""
+        qa_required = ""
+        qa_assignee = ""
+
+        # Iterate over each field to populate the table row
+        for field in fields:
+            value = issue['fields'].get(field, "")
+            if field == 'subtasks':
+                subtasks = issue['fields'].get('subtasks', [])
+                subtask_keys = [subtask['key'] for subtask in subtasks]
+                value = ', '.join(subtask_keys)
+            elif field == 'customfield_10005' and isinstance(value, list) and value:
+                value = value[0].split("name=")[-1].split(",")[0]  # Extract name from string
+            elif field == 'customfield_26424' and isinstance(value, list) and value:
+                value = value[0].get('status', '')  # Extract status from dictionary
+                requirement_status = value
+            elif isinstance(value, dict) and 'displayName' in value:
+                value = value['displayName']
+            elif isinstance(value, dict) and 'name' in value:
+                value = value['name']
+            elif isinstance(value, dict) and 'value' in value:
+                value = value['value']
+            elif isinstance(value, list):
+                value = ', '.join(str(v['name'] if isinstance(v, dict) and 'name' in v else v) for v in value)
+
+            if value is None or value == "":
+                value = "Not Available"
+            else:
+                value = remove_special_characters(value)  # Removing special characters
+            
+            if field == 'customfield_26027':
+                qa_required = str(value).replace("!", "").strip()  # Remove '!' and trim whitespace
+            elif field == 'customfield_17201':
+                qa_assignee = str(value).replace("!", "").strip()  # Remove '!' and trim whitespace
+
+            cell_content = html.escape(str(value))
+
+            # Apply the highlighting rules
+            if issue_type == "User Story" and field == "customfield_1110":  # Acceptance Criteria
+                acceptance_length = len(value) if value else 0
+                if acceptance_length == 0:
+                    table_row += f"<td style='background-color: blue;'>{cell_content}</td>"
+                    acceptance_criteria_comment = "less"
+                elif acceptance_length < 30:
+                    table_row += f"<td style='background-color: blue;'>{cell_content}</td>"
+                    acceptance_criteria_comment = "more"
+                else:
+                    table_row += f"<td>{cell_content}</td>"
+
+            elif field == "customfield_20627":
+                if qa_assignee != "Not Available":
+                    if qa_required != "Yes" and requirement_status != "OK":
+                        table_row += f"<td style='background-color: yellow;'>{cell_content}</td>"
+                        qa_required_comment = "Yellow column"
+                    elif qa_required == "Not Available":
+                        if requirement_status == "OK":
+                            table_row += f"<td style='background-color: red;'>{cell_content}</td>"
+                            qa_required_comment = "Red column"
+                        else:
+                            table_row += f"<td>{cell_content}</td>"
+                    else:
+                        if (qa_required == "Yes" and requirement_status != "OK") or (qa_required == "No" and requirement_status == "OK"):
+                            table_row += f"<td style='background-color: blue;'>{cell_content}</td>"
+                            qa_required_comment = "Blue column"
+                        else:
+                            table_row += f"<td>{cell_content}</td>"
+                elif qa_assignee == "Not Available":
+                    if requirement_status == "OK" or qa_required == "Yes":
+                        table_row += f"<td style='background-color: blue;'>{cell_content}</td>"
+                        qa_required_comment = "Blue column"
+                    else:
+                        table_row += f"<td>{cell_content}</td>"
+                else:
+                    table_row += f"<td>{cell_content}</td>"
+
+        if acceptance_criteria_comment and qa_required_comment:
+            combined_comment = f"{acceptance_criteria_comment}, {qa_required_comment}"
+        elif acceptance_criteria_comment:
+            combined_comment = acceptance_criteria_comment
+        elif qa_required_comment:
+            combined_comment = qa_required_comment
+
+        table_row += f"<td>{html.escape(combined_comment)}</td>"
+        table_row += "</tr>"
+        table_rows += table_row
+
+    # Combine table header, colgroup, and table rows to complete the HTML table
+    html_table = f"<table border='1' style='border-collapse: collapse;'>{colgroup}{table_header}{table_rows}</table>"
+    return html_table
+
+
+def process_issues(jql_query, all_email_content, fields):
+    issues = fetch_all_issues(jql_query)
+    if not issues:
+        return
+
+    component_name = jql_query.split('component = ')[1].split()[0].replace('"', '')
+    email_content = f"<h2>Results for component: {component_name}</h2><br>"
+
+    email_content += generate_html_table(issues, fields)
+
+    all_email_content.append(email_content)
+
+def send_email(subject, body):
+    sender_email = "your_email@example.com"
+    recipient_email = "recipient@example.com"
+
+    msg = MIMEMultipart()
+    msg['From'] = sender_email
+    msg['To'] = recipient_email
+    msg['Subject'] = subject
+
+    msg.attach(MIMEText(body, 'html'))
+
+    try:
+        server = smtplib.SMTP('smtp.example.com', 587)
+        server.starttls()
+        server.login(sender_email, "your_password")
+        server.sendmail(sender_email, recipient_email, msg.as_string())
+        server.quit()
+        logging.info(f"Email sent to {recipient_email}")
+    except Exception as
+

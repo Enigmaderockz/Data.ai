@@ -1969,75 +1969,91 @@ def process_issues(jql_query, all_email_content, fields):
 
 
 
-############################# Excel reporting
+############################# Pre filtering
 
+def generate_html_table(issues, fields):
+    html = """
+    <html>
+    <head>
+        <style>
+            table {
+                width: 100%;
+                border-collapse: collapse;
+            }
+            th, td {
+                text-align: left;
+                padding: 8px;
+                border: 1px solid #ddd;
+            }
+            th {
+                background-color: #f2f2f2;
+            }
+            tr:nth-child(even) {
+                background-color: #f9f9f9;
+            }
+            .filter-dropdown {
+                margin-bottom: 5px;
+            }
+        </style>
+        <script>
+            function filterTable(columnIndex) {
+                var input = document.getElementById('filter' + columnIndex);
+                var filter = input.value.toLowerCase();
+                var table = document.getElementById('issuesTable');
+                var rows = table.getElementsByTagName('tr');
+                
+                for (var i = 1; i < rows.length; i++) {
+                    var cells = rows[i].getElementsByTagName('td');
+                    var cellValue = cells[columnIndex].textContent || cells[columnIndex].innerText;
+                    if (cellValue.toLowerCase().indexOf(filter) > -1) {
+                        rows[i].style.display = '';
+                    } else {
+                        rows[i].style.display = 'none';
+                    }
+                }
+            }
+        </script>
+    </head>
+    <body>
+        <table id="issuesTable">
+            <thead>
+                <tr>
+    """
 
-import pandas as pd
-from openpyxl import Workbook
-from email.mime.base import MIMEBase
-from email import encoders
-import os
+    # Add dropdown filters for each column
+    for field in fields:
+        html += f"""
+                    <th>
+                        <input type="text" id="filter{fields.index(field)}" onkeyup="filterTable({fields.index(field)})" class="filter-dropdown" placeholder="Filter {custom_field_mapping.get(field, field.replace('_', ' ').title())}">
+                        {custom_field_mapping.get(field, field.replace('_', ' ').title())}
+                    </th>
+        """
 
-def generate_excel_file(issues, fields, component_name):
-    # Create a Pandas DataFrame from the issues
-    data = []
+    html += "</tr></thead><tbody>"
+
+    # Add the table rows
     for i, issue in enumerate(issues, start=1):
-        row = {
-            'Serial No': i,
-            'Story': issue['key'],
-            'Summary': issue['fields']['summary']
-        }
+        html += "<tr>"
+        html += f"<td>{i}</td>"
+        html += f"<td><a href='{issue['self']}' target='_blank'>{issue['key']}</a></td>"
+        html += f"<td>{issue['fields']['summary']}</td>"
         for field in fields:
             value = issue['fields'].get(field, "")
             if isinstance(value, dict):
                 value = value.get('name', value.get('displayName', ''))
             elif isinstance(value, list):
                 value = ', '.join(str(v['name'] if isinstance(v, dict) else v) for v in value)
-            row[custom_field_mapping.get(field, field.replace('_', ' ').title())] = value
+            html += f"<td>{value}</td>"
+        html += "</tr>"
 
-        data.append(row)
+    html += """
+            </tbody>
+        </table>
+    </body>
+    </html>
+    """
 
-    df = pd.DataFrame(data)
-
-    # Create a new Excel file
-    excel_filename = f"{component_name}_issues.xlsx"
-    excel_filepath = os.path.join('/tmp', excel_filename)  # Save in a temporary location
-    df.to_excel(excel_filepath, index=False)
-
-    return excel_filepath
-
-def send_email(subject, body, attachment_path=None):
-    sender_email = "your_email@example.com"
-    recipient_email = "recipient@example.com"
-
-    msg = MIMEMultipart()
-    msg['From'] = sender_email
-    msg['To'] = recipient_email
-    msg['Subject'] = subject
-
-    msg.attach(MIMEText(body, 'html'))
-
-    # Attach the Excel file
-    if attachment_path:
-        with open(attachment_path, 'rb') as attachment:
-            part = MIMEBase('application', 'octet-stream')
-            part.set_payload(attachment.read())
-            encoders.encode_base64(part)
-            part.add_header(
-                'Content-Disposition',
-                f'attachment; filename= {os.path.basename(attachment_path)}',
-            )
-            msg.attach(part)
-
-    try:
-        server = smtplib.SMTP('smtp.example.com', 587)
-        server.starttls()
-        server.login(sender_email, "your_password")
-        server.sendmail(sender_email, recipient_email, msg.as_string())
-        server.quit()
-        logging.info(f"Email sent to {recipient_email}")
-    except Exception as e:
-        logging.error(f"Failed to send email: {e}")
+    return html
 
 def process_issues(jql_query, all_email_content, fields):
     issues = fetch_all_issues(jql_query)
@@ -2047,46 +2063,8 @@ def process_issues(jql_query, all_email_content, fields):
     component_name = jql_query.split('component = ')[1].split()[0].replace('"', '')
     email_content = f"<h2>Results for component: {component_name}</h2><br>"
 
-    excel_filepath = generate_excel_file(issues, fields, component_name)
+    html_table = generate_html_table(issues, fields)
     
-    email_content += f"<p>You can download the detailed report <a href='cid:{os.path.basename(excel_filepath)}'>here</a>.</p>"
+    email_content += html_table
 
-    all_email_content.append((email_content, excel_filepath))
-
-def process_all_jql_queries():
-    all_email_content = []
-
-    fields = [
-        'issuetype',
-        'priority',
-        'versions',
-        'components',
-        'labels',
-        'status',
-        'resolution',
-        'fixVersions',
-        'customfield_10021',  # QA Required? (custom field)
-        'customfield_10020',  # Sprint (custom field)
-        'customfield_10002',  # Story Points (custom field)
-        'customfield_10010'   # Requirement Status (custom field)
-    ]
-
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        futures = {executor.submit(process_issues, jql_query, all_email_content, fields): jql_query for jql_query in jql_queries}
-        for future in concurrent.futures.as_completed(futures):
-            jql_query = futures[future]
-            try:
-                future.result()
-            except Exception as e:
-                logging.error(f"Error processing JQL '{jql_query}': {e}")
-
-    combined_email_content = ""
-    attachments = []
-    for content, attachment_path in all_email_content:
-        combined_email_content += content + "<br><br>"
-        attachments.append(attachment_path)
-
-    send_email("Jira Report for All Components", combined_email_content, attachment_path=attachments[0])
-
-# Start processing all JQL queries
-process_all_jql_queries()
+    all_email_content.append(email_content)

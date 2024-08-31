@@ -1952,3 +1952,17 @@ def send_email(subject, body):
   # Add the JQL query itself to the email content
     # Add the JQL query with blue color styling
     email_content += f"<p><strong>JQL:</strong> <span style='color:blue;'>{html.escape(jql_query)}</span></p><br>"
+
+
+def process_issues(jql_query, all_email_content, fields):
+    issues = fetch_all_issues(jql_query)
+    component_name = jql_query.split('component = ')[1].split()[0].replace('"', '')
+    
+    email_content = f"<h2>Results for component: {component_name}</h2><br>"
+
+    if issues:
+        email_content += generate_html_table(issues, fields)
+    else:
+        email_content += "<p style='color:red;'>No data available for this JQL.</p>"
+
+    all_email_content.append(email_content)

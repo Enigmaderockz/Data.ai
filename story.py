@@ -2044,3 +2044,30 @@ def send_email(subject, body, attachments=None):
         logging.error(f"Failed to send email: {e}")
 
         from email.encoders import encode_base64
+
+
+#### filtering
+
+# JavaScript for filtering
+    filter_script = """
+    <script>
+    function filterTable(columnIndex) {
+        var input, filter, table, tr, td, i, txtValue;
+        input = document.getElementsByTagName('input')[columnIndex];
+        filter = input.value.toUpperCase();
+        table = input.closest('table');
+        tr = table.getElementsByTagName('tr');
+        for (i = 1; i < tr.length; i++) {
+            td = tr[i].getElementsByTagName('td')[columnIndex];
+            if (td) {
+                txtValue = td.textContent || td.innerText;
+                if (txtValue.toUpperCase().indexOf(filter) > -1) {
+                    tr[i].style.display = '';
+                } else {
+                    tr[i].style.display = 'none';
+                }
+            }       
+        }
+    }
+    </script>
+    """

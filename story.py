@@ -1969,105 +1969,11 @@ def process_issues(jql_query, all_email_content, fields):
 
 
 
-############################# Pre filtering
+# subtask with status
 
-def process_issues(jql_query, fields):
-    issues = fetch_all_issues(jql_query)
-    if not issues:
-        return
-
-    component_name = jql_query.split('component = ')[1].split()[0].replace('"', '')
-    email_content = f"<h2>Results for component: {component_name}</h2><br>"
-
-    email_content += generate_html_table(issues, fields)
-
-    # Generate CSV data
-    csv_data = []
-    for issue in issues:
-        issue_data = []
-        for field in fields:
+for field in fields:
             value = issue['fields'].get(field, "")
-            if isinstance(value, dict) and 'displayName' in value:
-                value = value['displayName']
-            elif isinstance(value, dict) and 'name' in value:
-                value = value['name']
-            elif isinstance(value, list):
-                value = ', '.join(str(v['name'] if isinstance(v, dict) and 'name' in v else v) for v in value)
-            else:
-                value = str(value)
-            issue_data.append(value)
-        csv_data.append(issue_data)
-
-    # Write CSV data to a temporary file
-    with open('report.csv', 'w', newline='') as csvfile:
-        csv_writer = csv.writer(csvfile)
-        csv_writer.writerow(fields)  # Write header row
-        csv_writer.writerows(csv_data)
-
-    # Attach CSV file to email (within the function)
-    try:
-        with open('report.csv', 'rb') as attachment_file:
-            attachment = MIMEBase('application', 'octet-stream')
-            attachment.set_payload(attachment_file.read())
-            encode_base64(attachment)
-            attachment.add_header('Content-Disposition', 'attachment', filename='report.csv')
-
-            # Call send_email function with content and attachment
-            send_email(f"Jira Report for Component: {component_name}", email_content, [attachment])
-    except Exception as e:
-        logging.error(f"Failed to attach CSV file: {e}")
-
-
-def send_email(subject, body, attachments=None):
-    sender_email = "your_email@example.com"
-    recipient_email = "recipient@example.com"
-
-    msg = MIMEMultipart()
-    msg['From'] = sender_email
-    msg['To'] = recipient_email
-    msg['Subject'] = subject
-
-    msg.attach(MIMEText(body, 'html'))
-
-    if attachments:
-        for attachment in attachments:
-            msg.attach(attachment)
-
-    try:
-        server = smtplib.SMTP('smtp.example.com', 587)
-        server.starttls()
-        server.login(sender_email, "your_password")
-        server.sendmail(sender_email, recipient_email, msg.as_string())
-        server.quit()
-        logging.info(f"Email sent to {recipient_email}")
-    except Exception as e:
-        logging.error(f"Failed to send email: {e}")
-
-        from email.encoders import encode_base64
-
-
-#### filtering
-
-# JavaScript for filtering
-    filter_script = """
-    <script>
-    function filterTable(columnIndex) {
-        var input, filter, table, tr, td, i, txtValue;
-        input = document.getElementsByTagName('input')[columnIndex];
-        filter = input.value.toUpperCase();
-        table = input.closest('table');
-        tr = table.getElementsByTagName('tr');
-        for (i = 1; i < tr.length; i++) {
-            td = tr[i].getElementsByTagName('td')[columnIndex];
-            if (td) {
-                txtValue = td.textContent || td.innerText;
-                if (txtValue.toUpperCase().indexOf(filter) > -1) {
-                    tr[i].style.display = '';
-                } else {
-                    tr[i].style.display = 'none';
-                }
-            }       
-        }
-    }
-    </script>
-    """
+            if field == 'subtasks':
+                subtasks = issue['fields'].get('subtasks', [])
+                subtask_values = [f"{subtask['key']} ({subtask['fields']['status']['name']})" for subtask in subtasks]
+                value = ', '.join(subtask_values)

@@ -1982,6 +1982,7 @@ for field in fields:
 
  elif field == 'issuelinks':
     issue_links = []
+    relevant_statuses = []  # List to store statuses of relevant issue types
     
     # Check if 'issuelinks' field exists in the response
     if 'issuelinks' in issue.get('fields', {}):
@@ -1993,6 +1994,7 @@ for field in fields:
                 link_type = inward_issue['fields']['issuetype']['name']
                 if link_type in ['Bug', 'Defect', 'Defect Sub-Task']:
                     issue_links.append(f"{link_key} ({link_status})")
+                    relevant_statuses.append(link_status)  # Store status
             if 'outwardIssue' in link:
                 outward_issue = link['outwardIssue']
                 link_key = outward_issue['key']
@@ -2000,9 +2002,13 @@ for field in fields:
                 link_type = outward_issue['fields']['issuetype']['name']
                 if link_type in ['Bug', 'Defect', 'Defect Sub-Task']:
                     issue_links.append(f"{link_key} ({link_status})")
+                    relevant_statuses.append(link_status)  # Store status
     
     # Handle the case where 'issuelinks' doesn't exist or no relevant issue types found
     if not issue_links:
         value = "No linked defects available"
     else:
         value = ', '.join(issue_links)
+
+    # You can now use the `relevant_statuses` list for future purposes
+    # For example, you might store it in a dictionary or process it later

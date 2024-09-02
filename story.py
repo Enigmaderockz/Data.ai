@@ -2012,3 +2012,18 @@ for field in fields:
 
     # You can now use the `relevant_statuses` list for future purposes
     # For example, you might store it in a dictionary or process it later
+
+
+def check_status_list(status_list):
+    allowed_statuses = {"CLOSED", "CANCELLED"}  # Set of allowed statuses (case-insensitive)
+
+    # Convert each status to uppercase and check if it's in the allowed set
+    for status in status_list:
+        if status.upper() not in allowed_statuses:
+            return False
+    return True
+
+# Example usage
+abc = ['CLOSED', 'COOL']
+result = check_status_list(abc)
+print(result)  # Output will be False

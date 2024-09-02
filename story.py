@@ -1980,14 +1980,21 @@ for field in fields:
 
 
 
-# Linked Defects logic (new)
-        linked_defects_list = []
-        issuelinks = issue['fields'].get('issuelinks', [])
-
-        for link in issuelinks:
-            if link['id'] == '4194426' and 'outwardIssue' in link:
-                linked_issue_key = link['outwardIssue']['key']
-                linked_issue_status = link['outwardIssue']['fields']['status']['name']
-                linked_defects_list.append(f"{linked_issue_key} ({linked_issue_status})")
-
-        linked_defects_text = ', '.join(linked_defects_list) if linked_defects_list else 'No linked defect available'
+ elif field == 'issuelinks':
+    issue_links = []
+    for link in issue.get('fields', {}).get('issuelinks', []):
+        if 'inwardIssue' in link:
+            inward_issue = link['inwardIssue']
+            link_key = inward_issue['key']
+            link_status = inward_issue['fields']['status']['name']
+            link_type = inward_issue['fields']['issuetype']['name']
+            if link_type in ['Bug', 'Defect', 'Defect Sub-Task']:
+                issue_links.append(f"{link_key} ({link_status})")
+        if 'outwardIssue' in link:
+            outward_issue = link['outwardIssue']
+            link_key = outward_issue['key']
+            link_status = outward_issue['fields']['status']['name']
+            link_type = outward_issue['fields']['issuetype']['name']
+            if link_type in ['Bug', 'Defect', 'Defect Sub-Task']:
+                issue_links.append(f"{link_key} ({link_status})")
+    value = ', '.join(issue_links)

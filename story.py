@@ -1977,3 +1977,17 @@ for field in fields:
                 subtasks = issue['fields'].get('subtasks', [])
                 subtask_values = [f"{subtask['key']} ({subtask['fields']['status']['name']})" for subtask in subtasks]
                 value = ', '.join(subtask_values)
+
+
+
+# Linked Defects logic (new)
+        linked_defects_list = []
+        issuelinks = issue['fields'].get('issuelinks', [])
+
+        for link in issuelinks:
+            if link['id'] == '4194426' and 'outwardIssue' in link:
+                linked_issue_key = link['outwardIssue']['key']
+                linked_issue_status = link['outwardIssue']['fields']['status']['name']
+                linked_defects_list.append(f"{linked_issue_key} ({linked_issue_status})")
+
+        linked_defects_text = ', '.join(linked_defects_list) if linked_defects_list else 'No linked defect available'

@@ -1982,19 +1982,27 @@ for field in fields:
 
  elif field == 'issuelinks':
     issue_links = []
-    for link in issue.get('fields', {}).get('issuelinks', []):
-        if 'inwardIssue' in link:
-            inward_issue = link['inwardIssue']
-            link_key = inward_issue['key']
-            link_status = inward_issue['fields']['status']['name']
-            link_type = inward_issue['fields']['issuetype']['name']
-            if link_type in ['Bug', 'Defect', 'Defect Sub-Task']:
-                issue_links.append(f"{link_key} ({link_status})")
-        if 'outwardIssue' in link:
-            outward_issue = link['outwardIssue']
-            link_key = outward_issue['key']
-            link_status = outward_issue['fields']['status']['name']
-            link_type = outward_issue['fields']['issuetype']['name']
-            if link_type in ['Bug', 'Defect', 'Defect Sub-Task']:
-                issue_links.append(f"{link_key} ({link_status})")
-    value = ', '.join(issue_links)
+    
+    # Check if 'issuelinks' field exists in the response
+    if 'issuelinks' in issue.get('fields', {}):
+        for link in issue['fields']['issuelinks']:
+            if 'inwardIssue' in link:
+                inward_issue = link['inwardIssue']
+                link_key = inward_issue['key']
+                link_status = inward_issue['fields']['status']['name']
+                link_type = inward_issue['fields']['issuetype']['name']
+                if link_type in ['Bug', 'Defect', 'Defect Sub-Task']:
+                    issue_links.append(f"{link_key} ({link_status})")
+            if 'outwardIssue' in link:
+                outward_issue = link['outwardIssue']
+                link_key = outward_issue['key']
+                link_status = outward_issue['fields']['status']['name']
+                link_type = outward_issue['fields']['issuetype']['name']
+                if link_type in ['Bug', 'Defect', 'Defect Sub-Task']:
+                    issue_links.append(f"{link_key} ({link_status})")
+    
+    # Handle the case where 'issuelinks' doesn't exist or no relevant issue types found
+    if not issue_links:
+        value = "No linked defects available"
+    else:
+        value = ', '.join(issue_links)

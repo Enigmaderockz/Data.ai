@@ -2030,3 +2030,13 @@ def check_status_list(status_list):
 abc = ['CLOSED', 'COOL']
 result = check_status_list(abc)
 print(result)  # Output will be False
+
+
+for field in fields:
+            value = issue['fields'].get(field, "")
+            if field == 'subtasks':
+                subtasks = issue['fields'].get('subtasks', [])
+                if subtasks:
+                    subtask_values = [f"{index + 1}. {subtask['key']} ({subtask['fields']['status']['name']})"
+                                      for index, subtask in enumerate(subtasks)]
+                    value = '<br>'.join(subtask_values)  # Join with line breaks for numbered list format

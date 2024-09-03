@@ -2017,11 +2017,14 @@ for field in fields:
 def check_status_list(status_list):
     allowed_statuses = {"CLOSED", "CANCELLED"}  # Set of allowed statuses (case-insensitive)
 
+    # If the status list is empty, do nothing (return True by default)
+    if not status_list:
+        return True
+
     # Convert each status to uppercase and check if it's in the allowed set
     for status in status_list:
         if status.upper() not in allowed_statuses:
             return False
-    return True
 
 # Example usage
 abc = ['CLOSED', 'COOL']

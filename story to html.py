@@ -163,96 +163,75 @@ def generate_download_link(component_name, table_html):
 
 
 
-import os
-import html
+###############333 CSS
 
-def generate_and_save_html_report(issues, fields, component_name, directory=None):
-    """Generate an enhanced HTML report with CSS styling, filtering, and save it to a specified directory."""
-    # Generate the HTML content with CSS styling and filtering
-    table_html = """
-    <html>
-    <head>
-        <style>
-            body {
-                font-family: Arial, sans-serif;
-            }
-            table {
-                border-collapse: collapse;
-                width: 100%;
-            }
-            th, td {
-                text-align: left;
-                padding: 12px; /* Adjust padding for wider columns */
-                border: 1px solid #dddddd;
-                word-break: break-word; /* Ensure text wraps in cells */
-            }
-            th {
-                background-color: #f2f2f2;
-                cursor: pointer;
-            }
-            th.filter-header {
-                position: sticky;
-                top: 0;
-                background-color: #fff;
-                z-index: 1;
-            }
-            input[type="text"] {
-                width: 100%;
-                box-sizing: border-box;
-            }
-        </style>
-        <script>
-            // Function to filter table based on user input
-            function filterTable(input, columnIndex) {
-                var filter = input.value.toUpperCase();
-                var table = document.getElementById("issuesTable");
-                var tr = table.getElementsByTagName("tr");
-
-                for (var i = 1; i < tr.length; i++) {
-                    var td = tr[i].getElementsByTagName("td")[columnIndex];
-                    if (td) {
-                        var txtValue = td.textContent || td.innerText;
-                        tr[i].style.display = txtValue.toUpperCase().indexOf(filter) > -1 ? "" : "none";
-                    }
-                }
-            }
-        </script>
-    </head>
-    <body>
-        <h2>Jira Issues Report</h2>
-        <table id="issuesTable">
-            <thead>
-                <tr>
-    """
-    # Adding headers with filter input boxes
-    for field in fields:
-        table_html += f"<th class='filter-header'>{field}<br><input type='text' onkeyup='filterTable(this, {fields.index(field)})' placeholder='Filter {field}'></th>"
-
-    table_html += "</tr></thead><tbody>"
-
-    # Adding the table rows
-    for issue in issues:
-        table_html += "<tr>"
-        for field in fields:
-            value = issue.get(field, "Not available")
-            table_html += f"<td>{html.escape(str(value))}</td>"
-        table_html += "</tr>"
-
-    table_html += """
-            </tbody>
-        </table>
-    </body>
-    </html>
-    """
-    
-    # Save the HTML report to the specified directory
+def save_html_report(component_name, table_html, directory=None):
+    """Save the HTML report to a specified directory and return the file path."""
     if directory is None:
         directory = os.getcwd()  # Use the current working directory if no directory is provided
 
     file_name = f"report_{component_name}.html"
     file_path = os.path.join(directory, file_name)
 
+    # Add CSS styling
+    style = """
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            color: #333333;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+        th, td {
+            border: 1px solid #dddddd;
+            text-align: left;
+            padding: 8px;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        td {
+            word-wrap: break-word;
+            white-space: pre-wrap;
+        }
+        colgroup col {
+            width: auto;
+        }
+        colgroup col:first-child {
+            width: 5%;
+        }
+        colgroup col:nth-child(2) {
+            width: 15%;
+        }
+        colgroup col:nth-child(3) {
+            width: 20%;
+        }
+        /* Adjust the column width for additional columns */
+        colgroup col:nth-child(n+4) {
+            width: 10%;
+        }
+    </style>
+    """
+
+    # Wrap the HTML content with the style
+    html_content = f"""
+    <html>
+    <head>
+        {style}
+    </head>
+    <body>
+        <h2>HTML Report for {component_name}</h2>
+        <table>
+            {table_html}
+        </table>
+    </body>
+    </html>
+    """
+
     with open(file_path, 'w', encoding='utf-8') as file:
-        file.write(table_html)
+        file.write(html_content)
 
     return file_path

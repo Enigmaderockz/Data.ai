@@ -173,7 +173,7 @@ def save_html_report(component_name, table_html, directory=None):
     file_name = f"report_{component_name}.html"
     file_path = os.path.join(directory, file_name)
 
-    # Define your CSS here
+    # Define CSS directly within the <style> tag
     css_styles = """
     <style>
         body {
@@ -209,17 +209,16 @@ def save_html_report(component_name, table_html, directory=None):
     </style>
     """
 
-    # Combine the CSS and the HTML table
+    # Combine the CSS and HTML content into a full HTML structure
     full_html = f"""
     <html>
     <head>
-    {css_styles}
+        <meta charset="UTF-8">
+        {css_styles}
     </head>
     <body>
-    <h2>Report for {component_name}</h2>
-    <table>
-    {table_html}
-    </table>
+        <h2>Report for {component_name}</h2>
+        {table_html}
     </body>
     </html>
     """

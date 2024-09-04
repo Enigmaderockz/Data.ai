@@ -173,13 +173,15 @@ def save_html_report(component_name, table_html, directory=None):
     file_name = f"report_{component_name}.html"
     file_path = os.path.join(directory, file_name)
 
-    # Define CSS directly within the <style> tag
+    # Define CSS for both light and dark modes
     css_styles = """
     <style>
         body {
             font-family: Arial, sans-serif;
             font-size: 14px;
             color: #333;
+            background-color: #ffffff;
+            transition: background-color 0.3s, color 0.3s;
         }
         h2 {
             color: #1a73e8;
@@ -206,17 +208,46 @@ def save_html_report(component_name, table_html, directory=None):
         colgroup col {
             width: 15%;
         }
+
+        /* Dark mode styles */
+        body.dark-mode {
+            color: #e4e6eb;
+            background-color: #18191a;
+        }
+        body.dark-mode h2 {
+            color: #f2f2f2;
+        }
+        body.dark-mode th {
+            background-color: #3a3b3c;
+        }
+        body.dark-mode tr:nth-child(even) {
+            background-color: #242526;
+        }
+        body.dark-mode tr:hover {
+            background-color: #3a3b3c;
+        }
     </style>
     """
 
-    # Combine the CSS and HTML content into a full HTML structure
+    # Add JavaScript for toggling dark mode
+    js_script = """
+    <script>
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark-mode');
+        }
+    </script>
+    """
+
+    # Combine the CSS, JavaScript, and HTML content into a full HTML structure
     full_html = f"""
     <html>
     <head>
         <meta charset="UTF-8">
         {css_styles}
+        {js_script}
     </head>
     <body>
+        <button onclick="toggleDarkMode()">Toggle Dark Mode</button>
         <h2>Report for {component_name}</h2>
         {table_html}
     </body>
@@ -227,74 +258,3 @@ def save_html_report(component_name, table_html, directory=None):
         file.write(full_html)
 
     return file_path
-
-
-
-def generate_html_table(issues, fields):
-    # Table header with filters
-    table_header = "<tr><th>Serial No</th><th>Story</th><th>Summary</th>"
-    for field in fields:
-        field_name = custom_field_mapping.get(field, field.replace('_', ' ').title())
-        table_header += f"<th><input type='text' id='filter-{field}' onkeyup='filterTable(\"filter-{field}\", {fields.index(field) + 3})' placeholder='Search {html.escape(field_name)}'></th>"
-    table_header += "</tr>"
-
-    # Define column widths for fixed table layout
-    colgroup = """
-    <colgroup>
-        <col style="width: 5%;">
-        <col style="width: 15%;">
-        <col style="width: 20%;">
-        {col_widths}
-    </colgroup>
-    """.format(col_widths="".join(['<col style="width: 10%;">' for _ in fields]))
-
-    table_rows = ""
-    for i, issue in enumerate(issues, start=1):
-        # Alternate row color: light gray for odd rows, white for even rows
-        row_color = "#f2f2f2" if i % 2 != 0 else "#ffffff"
-        table_row = f"<tr style='background-color:{row_color};'><td>{i}</td><td>{html.escape(issue['key'])}</td><td>{html.escape(issue['fields']['summary'])}</td>"
-        
-        for field in fields:
-            value = issue['fields'].get(field, "")
-            # Handle different field types and special cases...
-            # [Your existing field handling logic]
-
-            # Escape the cell content to prevent HTML parsing issues
-            cell_content = html.escape(str(value))
-
-            # Apply the highlighting rules
-            # [Your existing highlighting logic]
-
-            table_row += f"<td>{cell_content}</td>"
-
-        table_row += "</tr>"
-        table_rows += table_row
-
-    # JavaScript function for filtering the table
-    filter_script = """
-    <script>
-        function filterTable(inputId, colIndex) {
-            var input, filter, table, tr, td, i, txtValue;
-            input = document.getElementById(inputId);
-            filter = input.value.toUpperCase();
-            table = input.closest("table");
-            tr = table.getElementsByTagName("tr");
-            for (i = 1; i < tr.length; i++) {
-                td = tr[i].getElementsByTagName("td")[colIndex];
-                if (td) {
-                    txtValue = td.textContent || td.innerText;
-                    if (txtValue.toUpperCase().indexOf(filter) > -1) {
-                        tr[i].style.display = "";
-                    } else {
-                        tr[i].style.display = "none";
-                    }
-                }       
-            }
-        }
-    </script>
-    """
-
-    # Combine everything to form the final table HTML
-    table_html = f"<table>{colgroup}{table_header}{table_rows}</table>{filter_script}"
-    
-    return table_html

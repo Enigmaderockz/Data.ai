@@ -173,65 +173,58 @@ def save_html_report(component_name, table_html, directory=None):
     file_name = f"report_{component_name}.html"
     file_path = os.path.join(directory, file_name)
 
-    # Add CSS styling
-    style = """
+    # Define your CSS here
+    css_styles = """
     <style>
         body {
             font-family: Arial, sans-serif;
             font-size: 14px;
-            color: #333333;
+            color: #333;
+        }
+        h2 {
+            color: #1a73e8;
         }
         table {
-            border-collapse: collapse;
             width: 100%;
+            border-collapse: collapse;
         }
         th, td {
-            border: 1px solid #dddddd;
-            text-align: left;
+            border: 1px solid #ddd;
             padding: 8px;
+            text-align: left;
         }
         th {
             background-color: #f2f2f2;
+            font-weight: bold;
         }
-        td {
-            word-wrap: break-word;
-            white-space: pre-wrap;
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        tr:hover {
+            background-color: #f1f1f1;
         }
         colgroup col {
-            width: auto;
-        }
-        colgroup col:first-child {
-            width: 5%;
-        }
-        colgroup col:nth-child(2) {
             width: 15%;
-        }
-        colgroup col:nth-child(3) {
-            width: 20%;
-        }
-        /* Adjust the column width for additional columns */
-        colgroup col:nth-child(n+4) {
-            width: 10%;
         }
     </style>
     """
 
-    # Wrap the HTML content with the style
-    html_content = f"""
+    # Combine the CSS and the HTML table
+    full_html = f"""
     <html>
     <head>
-        {style}
+    {css_styles}
     </head>
     <body>
-        <h2>HTML Report for {component_name}</h2>
-        <table>
-            {table_html}
-        </table>
+    <h2>Report for {component_name}</h2>
+    <table>
+    {table_html}
+    </table>
     </body>
     </html>
     """
 
     with open(file_path, 'w', encoding='utf-8') as file:
-        file.write(html_content)
+        file.write(full_html)
 
     return file_path

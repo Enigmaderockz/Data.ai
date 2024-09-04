@@ -144,3 +144,17 @@ table_html = "<html><body><h1>Report for ComponentA</h1><table><tr><td>Issue 1</
 
 file_path = save_html_report("ComponentA", table_html, custom_directory)
 print(f"Report saved at: {file_path}")
+
+
+def generate_download_link(component_name, table_html):
+    """Generate a download link for the saved HTML report."""
+    # Save the HTML report and get the Unix file path
+    unix_file_path = save_html_report(component_name, table_html)
+
+    # Convert the Unix path to a Windows-style path
+    windows_file_path = unix_file_path.replace("/", "\\")
+
+    # Generate the download link with the desired format
+    download_link = f"You can download the HTML file for summary: <a href='file://{windows_file_path}'>HTML report for {component_name}</a><br>"
+
+    return download_link

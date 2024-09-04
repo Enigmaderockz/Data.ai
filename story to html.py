@@ -121,3 +121,26 @@ jql_queries = [
 
 # Start processing all JQL queries
 process_all_jql_queries()
+
+
+
+import os
+
+def save_html_report(component_name, table_html, directory=None):
+    """Save the HTML report to a specified directory and return the file path."""
+    if directory is None:
+        directory = os.getcwd()  # Use the current working directory if no directory is provided
+
+    file_name = f"report_{component_name}.html"
+    file_path = os.path.join(directory, file_name)
+
+    with open(file_path, 'w', encoding='utf-8') as file:
+        file.write(table_html)
+
+    return file_path
+
+custom_directory = r"\\v\\global\sdfd"
+table_html = "<html><body><h1>Report for ComponentA</h1><table><tr><td>Issue 1</td></tr></table></body></html>"
+
+file_path = save_html_report("ComponentA", table_html, custom_directory)
+print(f"Report saved at: {file_path}")

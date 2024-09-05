@@ -258,3 +258,71 @@ def save_html_report(component_name, table_html, directory=None):
         file.write(full_html)
 
     return file_path
+
+
+
+
+
+def save_html_report(component_name, table_html, directory=None):
+    """Save the HTML report to a specified directory and return the file path."""
+    if directory is None:
+        directory = os.getcwd()  # Use the current working directory if no directory is provided
+
+    file_name = f"report_{component_name}.html"
+    file_path = os.path.join(directory, file_name)
+
+    # Define CSS with higher specificity or with !important
+    css_styles = """
+    <style>
+        body {
+            font-family: Arial, sans-serif !important;
+            font-size: 14px !important;
+            color: #333 !important;
+        }
+        h2 {
+            color: #1a73e8 !important;
+        }
+        table {
+            width: 100% !important;
+            border-collapse: collapse !important;
+        }
+        th, td {
+            border: 1px solid #ddd !important;
+            padding: 8px !important;
+            text-align: left !important;
+        }
+        th {
+            background-color: #f2f2f2 !important;
+            font-weight: bold !important;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9 !important;
+        }
+        tr:hover {
+            background-color: #f1f1f1 !important;
+        }
+        colgroup col {
+            width: 15% !important;
+        }
+    </style>
+    """
+
+    # Combine the CSS and HTML content into a full HTML structure
+    full_html = f"""
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        {css_styles}
+    </head>
+    <body>
+        <h2>Report for {component_name}</h2>
+        {table_html}
+    </body>
+    </html>
+    """
+
+    with open(file_path, 'w', encoding='utf-8') as file:
+        file.write(full_html)
+
+    return file_path
+

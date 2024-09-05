@@ -326,3 +326,14 @@ def save_html_report(component_name, table_html, directory=None):
 
     return file_path
 
+
+
+colgroup = """
+<colgroup>
+    <col style="width: 5%;">
+    <col style="width: 15%;">
+    <col style="width: 20%;">
+    {col_widths}
+    <col style="width: 30%;">  <!-- Set a wider width for the Comments column -->
+</colgroup>
+""".format(col_widths="".join(['<col style="width: 10%;">' for _ in fields[:-1]]))  # Assume "Comments" is the last column

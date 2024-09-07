@@ -2040,3 +2040,95 @@ for field in fields:
                     subtask_values = [f"{index + 1}. {subtask['key']} ({subtask['fields']['status']['name']})"
                                       for index, subtask in enumerate(subtasks)]
                     value = '<br>'.join(subtask_values)  # Join with line breaks for numbered list format
+
+
+
+
+# mulitplessssssssssss
+
+
+import csv
+import sys
+import logging
+
+def process_all_jql_queries(jql_queries, fields):
+    all_email_content = []
+
+    for jql_query in jql_queries:
+        logging.info(f"Processing JQL query: {jql_query}")
+        process_issues(jql_query, all_email_content, fields)
+
+    return ''.join(all_email_content)
+
+def main():
+    fields = [
+        'issuetype',
+        'priority',
+        'versions',
+        'components',
+        'labels',
+        'status',
+        'resolution',
+        'fixVersions',
+        'customfield_10021',  # QA Required? (custom field)
+        'customfield_10020',  # Sprint (custom field)
+        'customfield_10002',  # Story Points (custom field)
+    ]
+
+    if len(sys.argv) < 3:
+        logging.error("Insufficient arguments provided. Please provide 'squad' or 'feed' as the first argument.")
+        return
+
+    # Condition for 'squad'
+    if sys.argv[1] == "squad":
+        squad_names = []
+        squad_names.append(sys.argv[2])  # Get squad names from argument
+        squad_list = ', '.join(squad_names)
+        jql_queries = [
+            f'{sys.argv[3]} and type in ("User Story", "Sub-task") and component = "{component}"'
+            for component in squad_names
+        ]
+        subject = f"JIRA Compliance report for {sys.argv[1]} {squad_list} for {sys.argv[3]}"
+        recipient = "abc@gmail.com"
+
+        # Process JQL queries
+        email_body = process_all_jql_queries(jql_queries, fields)
+
+        # Send the email
+        send_email(subject, email_body, recipient)
+        logging.info(f"Email sent to {recipient}")
+
+    # Condition for 'feed'
+    elif sys.argv[1] == "feed":
+        csv_file = sys.argv[2]  # CSV filename
+        try:
+            with open(csv_file, 'r') as file:
+                csv_reader = csv.DictReader(file)
+
+                for row in csv_reader:
+                    squad = row['squad']
+                    squad_name = row['squad_name']
+                    condition = row['condition']
+                    emails = row['email'].split(',')
+
+                    # Construct JQL query using squad name and condition from CSV
+                    jql_query = [f"squad = {squad_name} AND {condition}"]
+
+                    # Process JQL query and fetch the results
+                    email_body = process_all_jql_queries(jql_query, fields)
+
+                    # Send the emails to all recipients listed in the CSV
+                    email_subject = f"Jira report for {squad_name}"
+                    for recipient_email in emails:
+                        send_email(email_subject, email_body, recipient_email)
+                        logging.info(f"Sent email to {recipient_email}")
+
+        except FileNotFoundError:
+            logging.error(f"CSV file '{csv_file}' not found.")
+        except KeyError as e:
+            logging.error(f"Missing column in CSV: {e}")
+    else:
+        logging.error("Invalid argument passed. First argument should be either 'squad' or 'feed'.")
+
+if __name__ == "__main__":
+    main()

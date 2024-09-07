@@ -2160,3 +2160,53 @@ elif sys.argv[1] == "feed":
                     squad_name = row['squad_name']
                     condition = row['condition']
                     emails = row['email'].split(',')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+with open(csv_file, 'r') as file:
+    csv_reader = csv.DictReader(file)
+    
+    # Strip spaces from headers
+    csv_reader.fieldnames = [field.strip() for field in csv_reader.fieldnames]
+    
+    # Check if all required columns are present
+    missing_columns = [col for col in required_columns if col not in csv_reader.fieldnames]
+    if missing_columns:
+        logging.error(f"Missing required columns in CSV: {', '.join(missing_columns)}")
+        return  # Exit if any columns are missing
+
+    for row in csv_reader:
+        try:
+            # Process each row
+            squad = row['squad'].strip()
+            squad_name = row['squad_name'].strip()
+            condition = row['condition'].strip()
+            emails = row['email'].strip().split(',')
+            
+            # Construct JQL query using squad name and condition from CSV
+            jql_query = [f"squad = {squad_name} AND {condition}"]
+
+            # Process JQL query and fetch the results
+            email_body = process_all_jql_queries(jql_query, fields)
+
+            # Send the emails to all recipients listed in the CSV
+            email_subject = f"Jira report for {squad_name}"
+            for recipient_email in emails:
+                send_email(email_subject, email_body, recipient_email)
+                logging.info(f"Sent email to {recipient_email}")
+
+        except KeyError as e:
+            logging.error(f"Missing column in CSV row: {e}")

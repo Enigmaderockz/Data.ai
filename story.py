@@ -2140,7 +2140,11 @@ squad|dnv sfsf|createddate > startofyear()|vnn@fkfk.com
 
 
 
-y:
+elif sys.argv[1] == "feed":
+    csv_file = sys.argv[2]  # CSV filename
+    required_columns = ['squad', 'squad_name', 'condition', 'email']
+
+    try:
         with open(csv_file, 'r') as file:
             csv_reader = csv.DictReader(file)
 

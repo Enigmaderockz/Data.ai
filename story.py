@@ -2137,3 +2137,22 @@ if __name__ == "__main__":
 squad|squad_name|condition|email
 squad|abc-drm|fixVersion=35.45.44|abc@gmail.com, fpay@gmail.com
 squad|dnv sfsf|createddate > startofyear()|vnn@fkfk.com
+
+
+
+y:
+        with open(csv_file, 'r') as file:
+            csv_reader = csv.DictReader(file)
+
+            # Check if all required columns are present
+            missing_columns = [col for col in required_columns if col not in csv_reader.fieldnames]
+            if missing_columns:
+                logging.error(f"Missing required columns in CSV: {', '.join(missing_columns)}")
+                return  # Exit if any columns are missing
+
+            for row in csv_reader:
+                try:
+                    squad = row['squad']
+                    squad_name = row['squad_name']
+                    condition = row['condition']
+                    emails = row['email'].split(',')

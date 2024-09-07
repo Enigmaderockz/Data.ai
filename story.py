@@ -2132,3 +2132,8 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+squad|squad_name|condition|email
+squad|abc-drm|fixVersion=35.45.44|abc@gmail.com, fpay@gmail.com
+squad|dnv sfsf|createddate > startofyear()|vnn@fkfk.com

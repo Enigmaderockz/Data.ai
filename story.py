@@ -2164,6 +2164,52 @@ elif sys.argv[1] == "feed":
 
 
 
+elif sys.argv[1] == "feed":
+    csv_file = sys.argv[2]  # CSV filename
+    required_columns = ['squad', 'squad_name', 'condition', 'email']
+
+    try:
+        with open(csv_file, 'r') as file:
+            csv_reader = csv.DictReader(file, delimiter='|')
+
+            # Check if all required columns are present
+            missing_columns = [col for col in required_columns if col not in csv_reader.fieldnames]
+            if missing_columns:
+                logging.error(f"Missing required columns in CSV: {', '.join(missing_columns)}")
+                sys.exit(1)
+
+            for row in csv_reader:
+                try:
+                    squad = row['squad'].strip()
+                    squad_names = row['squad_name'].split()  # Split based on spaces or other criteria
+                    squad_list = ', '.join(squad_names)
+                    condition = row['condition']
+                    emails = row['email'].split(',')
+                    
+                    # Loop over each squad_name and generate individual JQL query
+                    for squad_name in squad_names:
+                        jql_query = f'{condition} and component="{squad_name.strip()}"'
+                        print(f'Generated JQL: {jql_query}')  # Debug print to verify the JQL query
+
+                        # Fetch issues and process them
+                        all_email_content = []
+                        process_issues(jql_query, all_email_content, fields=['summary', 'status'])  # Customize fields as needed
+
+                        # Compose and send email for this squad
+                        subject = f"Jira compliance for squad {squad_name.strip()} for {condition}"
+                        recipient = ', '.join(emails)
+                        body = '\n'.join(all_email_content)
+
+                        send_email(subject, body)
+                except Exception as e:
+                    logging.error(f"Error processing row: {e}")
+    except FileNotFoundError:
+        logging.error(f"CSV file {csv_file} not found.")
+
+
+
+
+
 
 
 

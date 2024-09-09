@@ -2263,3 +2263,24 @@ elif sys.argv[1] == "feed":
                     logging.error(f"Error processing row: {e}")
     except FileNotFoundError:
         logging.error(f"CSV file {csv_file} not found.")
+
+
+
+HTML to excel
+
+import pandas as pd
+
+# Read the HTML file
+html_file = '/path_to_your_html_file/report_DRM_Lending.html'
+
+# Parse the table(s) in the HTML file
+tables = pd.read_html(html_file)
+
+# Convert the first table to a DataFrame
+df = tables[0]
+
+# Save the DataFrame to an Excel file
+output_excel_file = '/path_to_save_excel/report_DRM_Lending.xlsx'
+df.to_excel(output_excel_file, index=False)
+
+print(f"Excel file saved to {output_excel_file}")

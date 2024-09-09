@@ -2284,3 +2284,39 @@ output_excel_file = '/path_to_save_excel/report_DRM_Lending.xlsx'
 df.to_excel(output_excel_file, index=False)
 
 print(f"Excel file saved to {output_excel_file}")
+
+
+
+
+from bs4 import BeautifulSoup
+import openpyxl
+
+# Load the HTML content from file
+with open('/path_to_your_html_file/report_DRM_Lending.html', 'r') as f:
+    html_content = f.read()
+
+# Parse the HTML content
+soup = BeautifulSoup(html_content, 'html.parser')
+
+# Create a new Excel workbook and select the active worksheet
+wb = openpyxl.Workbook()
+ws = wb.active
+ws.title = "DRM Lending Report"
+
+# Find the table in the HTML (assuming there's one table, adjust if there are multiple)
+table = soup.find('table')
+
+# Extract the table headers
+headers = [th.get_text(strip=True) for th in table.find_all('th')]
+ws.append(headers)  # Write headers to the first row
+
+# Extract the table rows and write them to the Excel file
+for row in table.find_all('tr')[1:]:  # Skip the header row
+    cells = [td.get_text(strip=True) for td in row.find_all('td')]
+    ws.append(cells)  # Write the row data to Excel
+
+# Save the Excel file
+output_excel_file = '/path_to_save_excel/report_DRM_Lending.xlsx'
+wb.save(output_excel_file)
+
+print(f"Excel file saved to {output_excel_file}")

@@ -2401,3 +2401,11 @@ print(f"Excel file saved to {output_excel_file}")
     }
 }
 
+
+"workbench.colorCustomizations": {
+  "activityBar.foreground": "#ffcc00", // Color of the activity bar icons (default state)
+  "activityBar.activeBorder": "#00ff00", // Border color when the icon is active
+  "activityBar.inactiveForeground": "#999999", // Color of inactive icons
+  "activityBarBadge.background": "#ff0000", // Background color of the badges on the activity bar
+  "activityBarBadge.foreground": "#ffffff"  // Foreground (text) color of the badges
+}

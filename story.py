@@ -2320,3 +2320,10 @@ output_excel_file = '/path_to_save_excel/report_DRM_Lending.xlsx'
 wb.save(output_excel_file)
 
 print(f"Excel file saved to {output_excel_file}")
+
+
+
+pip install allure-pytest allure-python-commons pytest-bdd
+pytest --alluredir=abc/allure-results
+brew install allure
+allure generate abc/allure-results --clean -o abc/allure-report

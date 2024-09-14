@@ -2323,7 +2323,81 @@ print(f"Excel file saved to {output_excel_file}")
 
 
 
-pip install allure-pytest allure-python-commons pytest-bdd
-pytest --alluredir=abc/allure-results
-brew install allure
-allure generate abc/allure-results --clean -o abc/allure-report
+{
+    "workbench.colorCustomizations": {
+        "editor.background": "#f5f5f7",                // Soft light background like Windows 11 light mode
+        "editor.foreground": "#1f1f1f",                // Dark text for readability
+        "editorLineNumber.foreground": "#8a8a8a",      // Muted gray for line numbers
+        "editor.selectionBackground": "#a2c9ff",       // Light blue for selected text, like Windows highlight
+        "editor.selectionHighlightBackground": "#cfe5ff", // Soft blue for highlighted selections
+        "editorCursor.foreground": "#0078d4",          // Windows blue for the cursor
+        "editorBracketMatch.background": "#e0e0e0",    // Subtle gray for matching brackets
+        "editorBracketMatch.border": "#0078d4",        // Windows blue border around matching brackets
+        "editorWhitespace.foreground": "#e0e0e0",      // Light gray for whitespace characters
+
+        "sideBar.background": "#f3f3f5",               // Light gray for the sidebar
+        "sideBar.foreground": "#333333",               // Dark gray for sidebar text
+        "sideBarSectionHeader.background": "#0078d4",  // Windows blue for the sidebar headers
+        "sideBarSectionHeader.foreground": "#ffffff",  // White text for the sidebar header
+
+        "activityBar.background": "#0078d4",           // Windows 11 blue for the activity bar
+        "activityBar.foreground": "#ffffff",           // White icons for the activity bar
+        "activityBarBadge.background": "#ff4500",      // Bright orange badges (like Windows notifications)
+        "activityBarBadge.foreground": "#ffffff",      // White text for badges
+
+        "statusBar.background": "#0078d4",             // Windows blue for the status bar
+        "statusBar.foreground": "#ffffff",             // White text for the status bar
+        "statusBar.noFolderBackground": "#404040",     // Dark gray for no folder status
+        "statusBar.debuggingBackground": "#005a9e",    // Darker blue for debugging mode
+
+        "titleBar.activeBackground": "#f3f3f5",        // Light gray title bar (like Windows title bar)
+        "titleBar.activeForeground": "#333333",        // Dark gray for title bar text
+        "titleBar.inactiveBackground": "#e0e0e0",      // Slightly darker for inactive windows
+        "titleBar.inactiveForeground": "#8a8a8a",      // Muted gray for inactive title text
+
+        "button.background": "#0078d4",                // Windows blue for buttons
+        "button.foreground": "#ffffff",                // White button text
+        "button.hoverBackground": "#005a9e",           // Darker blue for hover state
+
+        "dropdown.background": "#ffffff",              // White background for dropdowns
+        "dropdown.foreground": "#1f1f1f",              // Dark text for dropdown options
+        "dropdown.border": "#e0e0e0",                  // Light gray border for dropdowns
+
+        "input.background": "#ffffff",                 // White input fields
+        "input.foreground": "#1f1f1f",                 // Dark text in input fields
+        "input.border": "#e0e0e0",                     // Light gray borders for inputs
+        "input.placeholderForeground": "#8a8a8a",      // Muted gray for placeholder text
+
+        "tab.activeBackground": "#ffffff",             // Active tab with white background
+        "tab.activeForeground": "#0078d4",             // Windows blue text for active tab
+        "tab.inactiveBackground": "#f3f3f5",           // Light gray background for inactive tabs
+        "tab.inactiveForeground": "#8a8a8a",           // Muted gray for inactive tab text
+        "tab.border": "#e0e0e0",                       // Light gray border for tabs
+        "tab.hoverBackground": "#0078d4",              // Blue hover effect on tabs
+
+        "scrollbarSlider.background": "#d0d0d0",       // Subtle gray scrollbar
+        "scrollbarSlider.hoverBackground": "#a0a0a0",  // Darker gray for hover state on scrollbar
+        "scrollbarSlider.activeBackground": "#808080", // Dark gray for active scrollbar
+
+        "panel.background": "#f5f5f7",                 // Light background for panel
+        "panel.border": "#e0e0e0",                     // Light gray border for panel
+
+        "terminal.background": "#1f1f1f",              // Dark terminal background
+        "terminal.foreground": "#f5f5f7",              // Light text for terminal
+        "terminalCursor.background": "#f5f5f7",        // White cursor in terminal
+        "terminalCursor.foreground": "#0078d4",        // Windows blue for terminal cursor
+        "terminal.selectionBackground": "#a2c9ff",     // Light blue for selected text in terminal
+
+        "badge.background": "#ff4500",                 // Orange badge like Windows notification
+        "badge.foreground": "#ffffff"                  // White text in badges
+    },
+    "editor.tokenColorCustomizations": {
+        "comments": "#6a6a6a",                          // Muted gray for comments
+        "keywords": "#0078d4",                          // Windows blue for keywords
+        "functions": "#d83b01",                         // Orange for functions (like Windows app icons)
+        "strings": "#228822",                           // Soft green for strings
+        "variables": "#0078d4",                         // Blue for variables
+        "types": "#ff8c00"                              // Orange for types (similar to Windows 11 icons)
+    }
+}
+

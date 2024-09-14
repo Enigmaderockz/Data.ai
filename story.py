@@ -2422,3 +2422,12 @@ print(f"Excel file saved to {output_excel_file}")
   "tab.activeBorder": "#ffcc00",      // Border color of the active tab
   "tab.unfocusedActiveForeground": "#cccccc"  // Text color for the active tab when the editor is not focused
 }
+
+
+"workbench.colorCustomizations": {
+  "list.focusBackground": "#ffcc00",   // Background color for focused item (when the sidebar is active and selected)
+  "list.activeSelectionBackground": "#00ffcc",  // Background color of actively selected item
+  "list.activeSelectionForeground": "#ffffff",  // Text color of actively selected item
+  "list.inactiveSelectionBackground": "#999999",  // Background color of selected item when the sidebar is not focused
+  "list.inactiveSelectionForeground": "#ffffff"   // Text color of selected item when the sidebar is not focused
+}

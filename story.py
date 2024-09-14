@@ -2410,3 +2410,15 @@ print(f"Excel file saved to {output_excel_file}")
   "activityBarBadge.foreground": "#ffffff"  // Foreground (text) color of the badges
 }
 "list.deemphasizedForeground": "#ffcc00" 
+
+
+"workbench.colorCustomizations": {
+  "tab.activeForeground": "#ffffff", // Text color for the active tab
+  "tab.inactiveForeground": "#999999" // Text color for inactive tabs
+}
+
+"workbench.colorCustomizations": {
+  "tab.activeBackground": "#1e1e1e",  // Background color of the active tab
+  "tab.activeBorder": "#ffcc00",      // Border color of the active tab
+  "tab.unfocusedActiveForeground": "#cccccc"  // Text color for the active tab when the editor is not focused
+}

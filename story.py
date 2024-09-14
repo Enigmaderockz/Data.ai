@@ -2409,3 +2409,4 @@ print(f"Excel file saved to {output_excel_file}")
   "activityBarBadge.background": "#ff0000", // Background color of the badges on the activity bar
   "activityBarBadge.foreground": "#ffffff"  // Foreground (text) color of the badges
 }
+"list.deemphasizedForeground": "#ffcc00" 

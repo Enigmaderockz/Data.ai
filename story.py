@@ -2431,3 +2431,23 @@ print(f"Excel file saved to {output_excel_file}")
   "list.inactiveSelectionBackground": "#999999",  // Background color of selected item when the sidebar is not focused
   "list.inactiveSelectionForeground": "#ffffff"   // Text color of selected item when the sidebar is not focused
 }
+
+
+
+# Initialize the counts
+    total_records = len(issues)
+    records_with_issues = 0
+    
+    table_rows = ""
+
+# If there are comments other than "No Issues", consider it as having an issue
+        if combined_comment != "":
+            comment = combined_comment
+            records_with_issues += 1  # Increment the counter for records with issues
+
+        # Finalize the row and add the combined comment
+
+
+ # Print total number of records and records with issues before returning the table HTML
+    print(f"Total number of records: {total_records}")
+    print(f"Total number of records with issues: {records_with_issues}")

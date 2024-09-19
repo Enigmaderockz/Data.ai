@@ -2451,3 +2451,36 @@ print(f"Excel file saved to {output_excel_file}")
  # Print total number of records and records with issues before returning the table HTML
     print(f"Total number of records: {total_records}")
     print(f"Total number of records with issues: {records_with_issues}")
+
+
+
+
+import concurrent.futures
+import os
+
+def fetch_and_write_to_csv(connection, sql, csv_file):
+    # Fetch data in chunks and write directly to CSV
+    table = etl.fromdb(connection, sql)
+    etl.tocsv(table, csv_file)
+    return csv_file
+
+def process_in_parallel(connection, sql1, sql2, csv1, csv2):
+    # Using ThreadPoolExecutor for parallelism
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        future1 = executor.submit(fetch_and_write_to_csv, connection, sql1, csv1)
+        future2 = executor.submit(fetch_and_write_to_csv, connection, sql2, csv2)
+        
+        csv_file1 = future1.result()
+        csv_file2 = future2.result()
+
+    return csv_file1, csv_file2
+
+# Example usage
+if __name__ == "__main__":
+    connection = # Your DB connection setup
+    sql1 = "SELECT * FROM table1"
+    sql2 = "SELECT * FROM table2"
+    csv1 = "output_table1.csv"
+    csv2 = "output_table2.csv"
+    
+    csv_file1, csv_file2 = process_in_parallel(connection, sql1, sql2, csv1, csv2)

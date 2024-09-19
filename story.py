@@ -2455,32 +2455,46 @@ print(f"Excel file saved to {output_excel_file}")
 
 
 
+import petl as etl
 import concurrent.futures
-import os
+import traceback
 
 def fetch_and_write_to_csv(connection, sql, csv_file):
-    # Fetch data in chunks and write directly to CSV
-    table = etl.fromdb(connection, sql)
-    etl.tocsv(table, csv_file)
-    return csv_file
+    """Fetch data from DB and write it to CSV"""
+    try:
+        # Fetch data in chunks to reduce memory footprint
+        table = etl.fromdb(connection, sql)
+        etl.tocsv(table, csv_file)
+        return csv_file
+    except Exception as e:
+        print(f"Error while processing SQL: {sql}")
+        traceback.print_exc()
+        return None
 
-def process_in_parallel(connection, sql1, sql2, csv1, csv2):
-    # Using ThreadPoolExecutor for parallelism
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        future1 = executor.submit(fetch_and_write_to_csv, connection, sql1, csv1)
-        future2 = executor.submit(fetch_and_write_to_csv, connection, sql2, csv2)
-        
-        csv_file1 = future1.result()
-        csv_file2 = future2.result()
+def td_csv(connection, sql1, sql2, csv1, csv2):
+    """Fetch data from two SQL queries and write them to two CSV files in parallel."""
+    try:
+        # Using ThreadPoolExecutor to parallelize the tasks
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            future1 = executor.submit(fetch_and_write_to_csv, connection, sql1, csv1)
+            future2 = executor.submit(fetch_and_write_to_csv, connection, sql2, csv2)
+            
+            # Wait for both tasks to complete and get the CSV file names
+            csv_file1 = future1.result()
+            csv_file2 = future2.result()
 
-    return csv_file1, csv_file2
+        return csv_file1, csv_file2
 
-# Example usage
+    except Exception as e:
+        print(f"Error in processing: {e}")
+        traceback.print_exc()
+
+# Example usage:
 if __name__ == "__main__":
     connection = # Your DB connection setup
-    sql1 = "SELECT * FROM table1"
-    sql2 = "SELECT * FROM table2"
-    csv1 = "output_table1.csv"
-    csv2 = "output_table2.csv"
-    
-    csv_file1, csv_file2 = process_in_parallel(connection, sql1, sql2, csv1, csv2)
+    sql1 = "SELECT * FROM your_table1"
+    sql2 = "SELECT * FROM your_table2"
+    csv1 = "output1.csv"
+    csv2 = "output2.csv"
+
+    td_csv(connection, sql1, sql2, csv1, csv2)

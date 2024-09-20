@@ -2455,46 +2455,21 @@ print(f"Excel file saved to {output_excel_file}")
 
 
 
-import petl as etl
-import concurrent.futures
-import traceback
+# Parse the HTML using BeautifulSoup
+soup = BeautifulSoup(html, 'html.parser')
 
-def fetch_and_write_to_csv(connection, sql, csv_file):
-    """Fetch data from DB and write it to CSV"""
-    try:
-        # Fetch data in chunks to reduce memory footprint
-        table = etl.fromdb(connection, sql)
-        etl.tocsv(table, csv_file)
-        return csv_file
-    except Exception as e:
-        print(f"Error while processing SQL: {sql}")
-        traceback.print_exc()
-        return None
+# Find all <span> elements and extract their text
+span_values = [span.get_text() for span in soup.find_all('span')]
 
-def td_csv(connection, sql1, sql2, csv1, csv2):
-    """Fetch data from two SQL queries and write them to two CSV files in parallel."""
-    try:
-        # Using ThreadPoolExecutor to parallelize the tasks
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            future1 = executor.submit(fetch_and_write_to_csv, connection, sql1, csv1)
-            future2 = executor.submit(fetch_and_write_to_csv, connection, sql2, csv2)
-            
-            # Wait for both tasks to complete and get the CSV file names
-            csv_file1 = future1.result()
-            csv_file2 = future2.result()
+# Join the values with commas
+result = ', '.join(span_values)
 
-        return csv_file1, csv_file2
+print(result)
 
-    except Exception as e:
-        print(f"Error in processing: {e}")
-        traceback.print_exc()
+# Use regex to find text between <span> and </span> tags
+span_values = re.findall(r'<span.*?>(.*?)</span>', html)
 
-# Example usage:
-if __name__ == "__main__":
-    connection = # Your DB connection setup
-    sql1 = "SELECT * FROM your_table1"
-    sql2 = "SELECT * FROM your_table2"
-    csv1 = "output1.csv"
-    csv2 = "output2.csv"
+# Join the values with commas
+result = ', '.join(span_values)
 
-    td_csv(connection, sql1, sql2, csv1, csv2)
+print(result)

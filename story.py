@@ -2466,8 +2466,14 @@ result = ', '.join(span_values)
 
 print(result)
 
+import re
+
+# Open the HTML file
+with open('your_file.html', 'r', encoding='utf-8') as file:
+    html_content = file.read()
+
 # Use regex to find text between <span> and </span> tags
-span_values = re.findall(r'<span.*?>(.*?)</span>', html)
+span_values = re.findall(r'<span.*?>(.*?)</span>', html_content)
 
 # Join the values with commas
 result = ', '.join(span_values)

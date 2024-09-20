@@ -2472,10 +2472,17 @@ import re
 with open('your_file.html', 'r', encoding='utf-8') as file:
     html_content = file.read()
 
-# Use regex to find text between <span> and </span> tags
-span_values = re.findall(r'<span.*?>(.*?)</span>', html_content)
+# Extract content between the phrase and the <h2> tag
+match = re.search(r'check the boxes to filter the results(.*?)<h2>Results</h2>', html_content, re.DOTALL)
 
-# Join the values with commas
-result = ', '.join(span_values)
+# If the section is found, extract <span> tags in that section
+if match:
+    filtered_html = match.group(1)
+    span_values = re.findall(r'<span.*?>(.*?)</span>', filtered_html)
+    
+    # Join the values with commas
+    result = ', '.join(span_values)
+    print(result)
+else:
+    print("Section not found")
 
-print(result)

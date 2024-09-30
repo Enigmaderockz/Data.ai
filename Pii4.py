@@ -40,8 +40,8 @@ def pii_detection_from_csv(csv_file, column_name, attribute):
             detected_columns[column_name] = df[df['phone_detected']][column_name].head(10).tolist()
 
     elif attribute in ['first name', 'last name', 'full name']:
-        # Match names that consist of only alphabetic characters
-        name_pattern = r'^[A-Za-z]+$'
+        # Match names starting with upper or lowercase letters
+        name_pattern = r'^[A-Za-z]+'
         df['name_detected'] = df[column_name].apply(lambda x: bool(re.match(name_pattern, str(x))))
         if df['name_detected'].any():
             detected_columns[column_name] = df[df['name_detected']][column_name].head(10).tolist()

@@ -99,3 +99,14 @@ elif status is False:
         print(f"In column {column}, these values were detected as PII: {values}")
 else:
     print("No PII detected.")
+
+
+# Check if PII was detected or if an error occurred
+if status is None:
+    # This means there was an error, and it was already printed
+    pass
+elif status is False:
+    assert False, '\n'.join(f"In column {column}, these values were detected as PII: {values}" for column, values in pii_columns.items())
+else:
+    print("No PII detected.")
+

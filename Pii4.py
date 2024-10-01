@@ -48,7 +48,7 @@ def pii_detection_from_csv(csv_file, column_name, attribute):
         # Only detect PII if the name contains valid alphabets and no special characters or numbers
         if df['name_detected'].any():
             detected_columns[column_name] = df[df['name_detected']][column_name].head(10).tolist()
-            
+
     elif attribute == 'birthdate':
         def is_pii_birthdate(date_str):
             try:
@@ -69,6 +69,10 @@ def pii_detection_from_csv(csv_file, column_name, attribute):
                 return True
             except:
                 return False
+
+        df['birthdate_detected'] = df[column_name].apply(lambda x: is_pii_birthdate(str(x)))
+        if df['birthdate_detected'].any():
+            detected_columns[column_name] = df[df['birthdate_detected']][column_name].head(10).tolist()
     
     elif attribute == 'ssn':
         # Match SSN in the format XXX-XX-XXXX

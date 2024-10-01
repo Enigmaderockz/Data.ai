@@ -127,3 +127,29 @@ combined_df = pd.concat([df1, df2], ignore_index=True)
 combined_df.to_csv('combined_run.csv', index=False)
 
 print("CSV files combined successfully into 'combined_run.csv'")
+
+
+
+
+
+import pandas as pd
+import glob
+
+# Find all CSV files that start with 'run' and end with '.csv'
+csv_files = glob.glob('run*.csv')
+
+# Create an empty list to store DataFrames
+df_list = []
+
+# Loop through all found CSV files and load them into DataFrames
+for file in csv_files:
+    df = pd.read_csv(file)
+    df_list.append(df)
+
+# Combine all DataFrames into one
+combined_df = pd.concat(df_list, ignore_index=True)
+
+# Save the combined DataFrame to a new CSV file
+combined_df.to_csv('combined_run.csv', index=False)
+
+print(f"Combined {len(csv_files)} CSV files successfully into 'combined_run.csv'")

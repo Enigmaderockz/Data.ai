@@ -57,3 +57,18 @@ if __name__ == "__main__":
 
 python gen.py temp.txt configs "ETRTMACCTSUM, ETRTM"
 python gen.py temp.txt configs ETRTMACCTSUM
+
+
+
+
+Feature: ET Margin data load
+
+@ingestion @e2e @{}
+Scenario Outline: GBTDRMFLEET-39287_{}_loading_Source_file_to_fact
+        Given config file <conf> for product "ETMARGIN" and TestCaseId <id>
+        Given able to run copy file JCL "mswmcopyDaily" <conf>
+        Given able to run JCL for Fact load "mswmdataCheckExecute" <conf>
+        Then data between source file with header trailer and Fact table should match for config "{}" with transformation "N"
+        Examples:
+        | conf ❘ id |
+        ❘ {}.cfg | {}_stage_load |

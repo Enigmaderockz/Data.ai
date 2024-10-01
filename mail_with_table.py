@@ -111,3 +111,19 @@ if __name__ == '__main__':
 
     # Send the email
     send_email(sender_email, receiver_email, subject, html_content, smtp_server, smtp_port, smtp_user, smtp_password)
+
+
+
+import pandas as pd
+
+# Load both CSV files
+df1 = pd.read_csv('run1.csv')
+df2 = pd.read_csv('run2.csv')
+
+# Combine the two DataFrames
+combined_df = pd.concat([df1, df2], ignore_index=True)
+
+# Save the combined DataFrame to a new CSV file
+combined_df.to_csv('combined_run.csv', index=False)
+
+print("CSV files combined successfully into 'combined_run.csv'")

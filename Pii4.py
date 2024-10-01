@@ -48,6 +48,27 @@ def pii_detection_from_csv(csv_file, column_name, attribute):
         # Only detect PII if the name contains valid alphabets and no special characters or numbers
         if df['name_detected'].any():
             detected_columns[column_name] = df[df['name_detected']][column_name].head(10).tolist()
+            
+    elif attribute == 'birthdate':
+        def is_pii_birthdate(date_str):
+            try:
+                # Attempt to parse various common date formats
+                date_formats = ['%m-%d-%Y', '%d-%m-%Y', '%Y-%d-%m', '%m/%d/%Y', '%d/%m/%Y', '%Y/%d/%m']
+                for date_format in date_formats:
+                    try:
+                        date_obj = datetime.strptime(date_str, date_format)
+                        break
+                    except ValueError:
+                        continue
+                else:
+                    return False  # If no formats matched, it's not a valid date
+
+                # If the year is before 1900, consider it non-PII
+                if date_obj.year < 1900:
+                    return False
+                return True
+            except:
+                return False
     
     elif attribute == 'ssn':
         # Match SSN in the format XXX-XX-XXXX

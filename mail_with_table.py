@@ -15,17 +15,29 @@ def create_html_table(csv_file):
         <style>
             table {
                 font-family: Segoe UI, Arial, sans-serif;
-                font-size: 11px;
+                font-size: 12px;
                 border-collapse: collapse;
                 width: 100%;
             }
-            th, td {
+            th {
+                background-color: navy;
+                color: white;
+                text-align: left;
+                padding: 10px;
+            }
+            td {
                 border: 1px solid #dddddd;
                 text-align: left;
                 padding: 8px;
             }
             tr:nth-child(even) {
                 background-color: #f2f2f2;
+            }
+            tr:nth-child(odd) {
+                background-color: #ffffff;
+            }
+            tr:hover {
+                background-color: #e9e9e9;
             }
         </style>
     </head>
@@ -70,7 +82,6 @@ def create_html_table(csv_file):
     """
     
     return html
-
 # Function to send an email with HTML content
 def send_email(sender_email, receiver_email, subject, html_content, smtp_server, smtp_port, smtp_user, smtp_password):
     # Create a multipart message

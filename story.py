@@ -2486,3 +2486,26 @@ if match:
 else:
     print("Section not found")
 
+
+
+
+
+import pandas as pd
+
+# Load JSON data (from a file or directly as a dictionary)
+json_data = {
+    "employees": [
+        {"name": "John Doe", "age": 30, "department": "Engineering"},
+        {"name": "Jane Smith", "age": 25, "department": "Marketing"},
+        {"name": "Sam Brown", "age": 40, "department": "Sales"}
+    ]
+}
+
+# Convert JSON to DataFrame
+df = pd.DataFrame(json_data['employees'])
+
+# Save DataFrame to Excel file
+excel_file = 'output.xlsx'
+df.to_excel(excel_file, index=False)
+
+print(f"Data has been written to {excel_file}")

@@ -2509,3 +2509,74 @@ excel_file = 'output.xlsx'
 df.to_excel(excel_file, index=False)
 
 print(f"Data has been written to {excel_file}")
+
+
+
+
+def dunc(df_data):
+    # Initialize counters and lists
+    tot_cnt_stories = 0
+    tot_qa_required_stories = 0
+    tot_cnt_test_plan = 0
+    cnt_functional_test_plan = 0
+    cnt_regression_test_plan = 0
+    cnt_auto_in_functional = 0
+    cnt_auto_in_regression = 0
+    cnt_functional_test_cases = 0
+    cnt_regression_test_cases = 0
+
+    # Initialize lists to store test plan IDs
+    functional_test_plan_list = []
+    regression_test_plan_list = []
+
+    # Iterate over the DataFrame rows
+    for index, row in df_data.iterrows():
+        try:
+            issue_type = row['fields.issuetype.name']
+            issue_qa_required = safe_get_value_from_dataframe(row, 'fields.customfield_17201.value', "No")
+            issue_key = row['key']
+        except Exception as e:
+            return {"error": True, "error_info": "Jira item not found!"}
+
+        # Check issue type
+        if issue_type == "User Story":  # Use '==' for comparison
+            tot_cnt_stories += 1
+            if issue_qa_required == "Yes":  # Use '==' for comparison
+                tot_qa_required_stories += 1
+        elif issue_type == "Test Plan":  # Use '==' for comparison
+            testPlanID = issue_key
+            tot_cnt_test_plan += 1
+            testPlanType = ''  # Initialize testPlanType
+            if "fields.summary" in df_data.columns:
+                summary = row['fields.summary'].split(" | ")
+                if len(summary) > 1:  # Check for length > 1 to access index 1
+                    testPlanType = summary[1]  # Get test plan type from summary
+
+            test_case_cnts = get_test_cases_status(testPlanID)
+
+            # Check test plan type and append to respective lists
+            if testPlanType == 'Functional':  # Use '==' for comparison
+                cnt_functional_test_plan += 1
+                functional_test_plan_list.append(testPlanID)  # Add to functional list
+                cnt_auto_in_functional += test_case_cnts['cnt_auto']
+                cnt_functional_test_cases += test_case_cnts['cnt_auto'] + test_case_cnts['cnt_manual']
+            elif testPlanType == 'Regression':  # Use '==' for comparison
+                cnt_regression_test_plan += 1
+                regression_test_plan_list.append(testPlanID)  # Add to regression list
+                cnt_auto_in_regression += test_case_cnts['cnt_auto']
+                cnt_regression_test_cases += test_case_cnts['cnt_auto'] + test_case_cnts['cnt_manual']
+
+    # Return the results, including the lists
+    return {
+        "total_user_stories": tot_cnt_stories,
+        "total_qa_required": tot_qa_required_stories,
+        "total_test_plans": tot_cnt_test_plan,
+        "functional_test_plans": cnt_functional_test_plan,
+        "regression_test_plans": cnt_regression_test_plan,
+        "auto_in_functional": cnt_auto_in_functional,
+        "functional_test_cases": cnt_functional_test_cases,
+        "auto_in_regression": cnt_auto_in_regression,
+        "regression_test_cases": cnt_regression_test_cases,
+        "functional_test_plan_list": functional_test_plan_list,  # List of Functional Test Plans
+        "regression_test_plan_list": regression_test_plan_list   # List of Regression Test Plans
+    }

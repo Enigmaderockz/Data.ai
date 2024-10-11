@@ -2529,12 +2529,20 @@ def dunc():
     distinct_components = set()
     distinct_customfield_values = set()
 
+    # Defect-related variables
+    total_defects = 0
+    closed_defects = 0
+    open_defects = 0
+    open_defect_details = []
+
     for index, row in df_data.iterrows():
         try:
             issue_type = row['fields.issuetype.name']
             issue_qa_required = row.get('fields.customfield_17201.value', "No")
             issue_key = row['key']
-            
+            status = row['fields.status.name']
+            summary = row.get('fields.summary', '')
+
             # Collect distinct component values
             components = row.get('fields.components', [])
             for component in components:
@@ -2544,6 +2552,15 @@ def dunc():
             customfield_value = row.get('fields.customfield_17201.value')
             if customfield_value:
                 distinct_customfield_values.add(customfield_value)
+
+            # Defect handling
+            if issue_type in ["Defect Sub-Task", "Bug", "Dev_Bug"]:
+                total_defects += 1
+                if status == "Closed":
+                    closed_defects += 1
+                else:
+                    open_defects += 1
+                    open_defect_details.append(f"{issue_key} - {summary}")
 
         except Exception as e:
             return {"error": True, "error_info": "Jira item not found!"}
@@ -2570,6 +2587,14 @@ def dunc():
                 cnt_auto_in_regression += test_case_cnts['cnt_auto']
                 cnt_regression_test_cases += test_case_cnts['cnt_auto'] + test_case_cnts['cnt_manual']
 
+    # Prepare defect information in a single string
+    defect_info = f"Total defects: {total_defects} Closed defects: {closed_defects} Open defects: {open_defects}"
+    if open_defects > 0:
+        defect_info += "\n\nOpen defects details:\n" + "\n".join(open_defect_details)
+
+    # Print defect information in one go
+    print(defect_info)
+
     # Print distinct components and customfield_17201 values
-    print("Distinct Components in scope:", distinct_components)
-    print("Distinct customfield_17201 values in scope:", distinct_customfield_values)
+    print("Distinct Components in scope:", ', '.join(distinct_components))
+    print("Distinct customfield_17201 values in scope:", ', '.join(distinct_customfield_values))

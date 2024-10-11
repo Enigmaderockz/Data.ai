@@ -2604,3 +2604,45 @@ def dunc():
     # Print distinct components and customfield_17201 values
     print("Distinct Components in scope:", ', '.join(distinct_components))
     print("Distinct customfield_17201 values in scope:", ', '.join(distinct_customfield_values))
+
+
+
+
+
+
+import pandas as pd
+import datetime
+import json
+import openpyxl  # Explicitly importing openpyxl
+
+# Define file paths
+input_file = 'back.json'
+
+# Function to convert JSON keys to more readable column names
+def convert_key_to_column_name(key):
+    return key.replace('_', ' ').title()
+
+# Generate today's date for the output Excel file name
+today_date = datetime.datetime.now().strftime('%Y-%m-%d')
+output_file = f'jan_aug_2024_{today_date}.xlsx'
+
+# Load JSON data in a memory-efficient manner
+def read_json_in_chunks(file_path, chunk_size=1000):
+    with open(file_path, 'r') as file:
+        data = json.load(file)
+        for i in range(0, len(data), chunk_size):
+            yield data[i:i+chunk_size]
+
+# Write data to Excel in a memory-efficient way
+with pd.ExcelWriter(output_file, engine='openpyxl', mode='w') as writer:
+    first_chunk = True
+    for chunk in read_json_in_chunks(input_file):
+        # Convert chunk to DataFrame
+        chunk_df = pd.DataFrame(chunk)
+        # Rename columns dynamically
+        chunk_df.columns = [convert_key_to_column_name(col) for col in chunk_df.columns]
+        # Append to Excel sheet
+        chunk_df.to_excel(writer, index=False, sheet_name='Data', startrow=0 if first_chunk else writer.sheets['Data'].max_row, header=first_chunk)
+        first_chunk = False  # Disable header after the first chunk
+
+print(f'Data has been successfully written to {output_file}')

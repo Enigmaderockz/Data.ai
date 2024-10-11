@@ -2545,8 +2545,9 @@ def dunc():
 
             # Collect distinct component values
             components = row.get('fields.components', [])
-            for component in components:
-                distinct_components.add(component.get('name'))
+            component_names = [component.get('name') for component in components]
+            for component_name in component_names:
+                distinct_components.add(component_name)
 
             # Collect distinct customfield_17201 values
             customfield_value = row.get('fields.customfield_17201.value')
@@ -2560,7 +2561,8 @@ def dunc():
                     closed_defects += 1
                 else:
                     open_defects += 1
-                    open_defect_details.append(f"{issue_key} - {summary}")
+                    # Append open defect details including components
+                    open_defect_details.append(f"{issue_key} - {summary} ({', '.join(component_names)})")
 
         except Exception as e:
             return {"error": True, "error_info": "Jira item not found!"}

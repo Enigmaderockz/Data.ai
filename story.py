@@ -2610,39 +2610,102 @@ def dunc():
 
 
 
+#### user.py
+
 import pandas as pd
-import datetime
-import json
-import openpyxl  # Explicitly importing openpyxl
+from openpyxl import load_workbook
 
-# Define file paths
-input_file = 'back.json'
+# Load the Excel file
+file_path = 'jan_aug_2024_2024-10-11.xlsx'
+excel_data = pd.read_excel(file_path, sheet_name=0)
 
-# Function to convert JSON keys to more readable column names
-def convert_key_to_column_name(key):
-    return key.replace('_', ' ').title()
+# Define the statuses that map to each category
+automated_status = ['Automated']
+backlog_status = ['Partial automated', 'Not automated', 'Automatable but not automated']
+manual_status = ['Not feasible not automated']
 
-# Generate today's date for the output Excel file name
-today_date = datetime.datetime.now().strftime('%Y-%m-%d')
-output_file = f'jan_aug_2024_{today_date}.xlsx'
+# Create a summary DataFrame
+summary_df = (
+    excel_data
+    .groupby(['Name', 'Fleet', 'Overall Automation Status'])
+    .size()
+    .reset_index(name='Count')
+    .pivot_table(
+        index=['Name', 'Fleet'],
+        columns='Overall Automation Status',
+        values='Count',
+        fill_value=0
+    )
+    .reset_index()
+)
 
-# Load JSON data in a memory-efficient manner
-def read_json_in_chunks(file_path, chunk_size=1000):
-    with open(file_path, 'r') as file:
-        data = json.load(file)
-        for i in range(0, len(data), chunk_size):
-            yield data[i:i+chunk_size]
+# Reindex to add missing columns with a default value of 0
+all_statuses = automated_status + backlog_status + manual_status
+summary_df = summary_df.reindex(columns=['Name', 'Fleet'] + all_statuses, fill_value=0)
 
-# Write data to Excel in a memory-efficient way
-with pd.ExcelWriter(output_file, engine='openpyxl', mode='w') as writer:
-    first_chunk = True
-    for chunk in read_json_in_chunks(input_file):
-        # Convert chunk to DataFrame
-        chunk_df = pd.DataFrame(chunk)
-        # Rename columns dynamically
-        chunk_df.columns = [convert_key_to_column_name(col) for col in chunk_df.columns]
-        # Append to Excel sheet
-        chunk_df.to_excel(writer, index=False, sheet_name='Data', startrow=0 if first_chunk else writer.sheets['Data'].max_row, header=first_chunk)
-        first_chunk = False  # Disable header after the first chunk
+# Calculate totals and assign to respective columns
+summary_df['Automated'] = summary_df[automated_status].sum(axis=1)
+summary_df['Backlog'] = summary_df[backlog_status].sum(axis=1)
+summary_df['Manual'] = summary_df[manual_status].sum(axis=1)
+summary_df['Total'] = summary_df[['Automated', 'Backlog', 'Manual']].sum(axis=1)
 
-print(f'Data has been successfully written to {output_file}')
+# Keep only the required columns
+final_summary_df = summary_df[['Name', 'Fleet', 'Automated', 'Backlog', 'Manual', 'Total']]
+
+# Append the new sheet to the workbook
+with pd.ExcelWriter(file_path, engine='openpyxl', mode='a', if_sheet_exists='replace') as writer:
+    final_summary_df.to_excel(writer, sheet_name='Summary', index=False)
+
+print("Data has been successfully written to the new sheet in the workbook.")
+
+
+# Successfully installed openpyxl-3.1.5 pandas-2.2.3
+
+## fleet.py
+
+import pandas as pd
+from openpyxl import load_workbook
+
+# Load the Excel file
+file_path = 'jan_aug_2024_2024-10-11.xlsx'
+excel_data = pd.read_excel(file_path, sheet_name=0)
+
+# Define the statuses that map to each category
+automated_status = ['Automated']
+backlog_status = ['Partial automated', 'Not automated', 'Automatable but not automated']
+manual_status = ['Not feasible not automated']
+
+# Create a summary DataFrame grouped by 'Fleet'
+summary_df = (
+    excel_data
+    .groupby(['Fleet', 'Overall Automation Status'])
+    .size()
+    .reset_index(name='Count')
+    .pivot_table(
+        index='Fleet',
+        columns='Overall Automation Status',
+        values='Count',
+        fill_value=0
+    )
+    .reset_index()
+)
+
+# Reindex to add missing columns with a default value of 0
+all_statuses = automated_status + backlog_status + manual_status
+summary_df = summary_df.reindex(columns=['Fleet'] + all_statuses, fill_value=0)
+
+# Calculate totals and assign to respective columns
+summary_df['Automated'] = summary_df[automated_status].sum(axis=1)
+summary_df['Backlog'] = summary_df[backlog_status].sum(axis=1)
+summary_df['Manual'] = summary_df[manual_status].sum(axis=1)
+summary_df['Total'] = summary_df[['Automated', 'Backlog', 'Manual']].sum(axis=1)
+
+# Keep only the required columns
+final_summary_df = summary_df[['Fleet', 'Automated', 'Backlog', 'Manual', 'Total']]
+
+# Append the new sheet to the workbook
+with pd.ExcelWriter(file_path, engine='openpyxl', mode='a', if_sheet_exists='replace') as writer:
+    final_summary_df.to_excel(writer, sheet_name='By Fleet', index=False)
+
+print("Data has been successfully written to the new sheet in the workbook.")
+

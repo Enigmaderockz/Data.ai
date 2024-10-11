@@ -2513,143 +2513,63 @@ print(f"Data has been written to {excel_file}")
 
 
 
-def dunc(df_data):
-    # Initialize counters and lists
+def dunc():
+    # Initialize variables
     tot_cnt_stories = 0
     tot_qa_required_stories = 0
     tot_cnt_test_plan = 0
     cnt_functional_test_plan = 0
-    cnt_regression_test_plan = 0
     cnt_auto_in_functional = 0
-    cnt_auto_in_regression = 0
     cnt_functional_test_cases = 0
+    cnt_regression_test_plan = 0
+    cnt_auto_in_regression = 0
     cnt_regression_test_cases = 0
 
-    # Initialize lists to store test plan IDs
-    functional_test_plan_list = []
-    regression_test_plan_list = []
+    # Sets to capture distinct components and customfield_17201 values
+    distinct_components = set()
+    distinct_customfield_values = set()
 
-    # Iterate over the DataFrame rows
     for index, row in df_data.iterrows():
         try:
             issue_type = row['fields.issuetype.name']
-            issue_qa_required = safe_get_value_from_dataframe(row, 'fields.customfield_17201.value', "No")
+            issue_qa_required = row.get('fields.customfield_17201.value', "No")
             issue_key = row['key']
+            
+            # Collect distinct component values
+            components = row.get('fields.components', [])
+            for component in components:
+                distinct_components.add(component.get('name'))
+
+            # Collect distinct customfield_17201 values
+            customfield_value = row.get('fields.customfield_17201.value')
+            if customfield_value:
+                distinct_customfield_values.add(customfield_value)
+
         except Exception as e:
             return {"error": True, "error_info": "Jira item not found!"}
-
-        # Check issue type
-        if issue_type == "User Story":  # Use '==' for comparison
+                    
+        if issue_type == "User Story":
             tot_cnt_stories += 1
-            if issue_qa_required == "Yes":  # Use '==' for comparison
+            if issue_qa_required == "Yes":
                 tot_qa_required_stories += 1
-        elif issue_type == "Test Plan":  # Use '==' for comparison
+        elif issue_type == "Test Plan":
             testPlanID = issue_key
             tot_cnt_test_plan += 1
-            testPlanType = ''  # Initialize testPlanType
+            testPlanType = ''
             if "fields.summary" in df_data.columns:
                 summary = row['fields.summary'].split(" | ")
-                if len(summary) > 1:  # Check for length > 1 to access index 1
-                    testPlanType = summary[1]  # Get test plan type from summary
-
+                if len(summary) > 2:
+                    testPlanType = summary[1]  # get test plan type from summary
             test_case_cnts = get_test_cases_status(testPlanID)
-
-            # Check test plan type and append to respective lists
-            if testPlanType == 'Functional':  # Use '==' for comparison
+            if testPlanType == 'Functional':
                 cnt_functional_test_plan += 1
-                functional_test_plan_list.append(testPlanID)  # Add to functional list
                 cnt_auto_in_functional += test_case_cnts['cnt_auto']
                 cnt_functional_test_cases += test_case_cnts['cnt_auto'] + test_case_cnts['cnt_manual']
-            elif testPlanType == 'Regression':  # Use '==' for comparison
+            elif testPlanType == 'Regression':
                 cnt_regression_test_plan += 1
-                regression_test_plan_list.append(testPlanID)  # Add to regression list
                 cnt_auto_in_regression += test_case_cnts['cnt_auto']
                 cnt_regression_test_cases += test_case_cnts['cnt_auto'] + test_case_cnts['cnt_manual']
 
-    # Return the results, including the lists
-    return {
-        "total_user_stories": tot_cnt_stories,
-        "total_qa_required": tot_qa_required_stories,
-        "total_test_plans": tot_cnt_test_plan,
-        "functional_test_plans": cnt_functional_test_plan,
-        "regression_test_plans": cnt_regression_test_plan,
-        "auto_in_functional": cnt_auto_in_functional,
-        "functional_test_cases": cnt_functional_test_cases,
-        "auto_in_regression": cnt_auto_in_regression,
-        "regression_test_cases": cnt_regression_test_cases,
-        "functional_test_plan_list": functional_test_plan_list,  # List of Functional Test Plans
-        "regression_test_plan_list": regression_test_plan_list   # List of Regression Test Plans
-    }
-
-
-
-def dunc(df_data):
-    # Initialize counters and lists
-    tot_cnt_stories = 0
-    tot_qa_required_stories = 0
-    tot_cnt_test_plan = 0
-    cnt_functional_test_plan = 0
-    cnt_regression_test_plan = 0
-    cnt_auto_in_functional = 0
-    cnt_auto_in_regression = 0
-    cnt_functional_test_cases = 0
-    cnt_regression_test_cases = 0
-
-    # Initialize lists to store test plan IDs with their summaries
-    functional_test_plan_list = []
-    regression_test_plan_list = []
-
-    # Iterate over the DataFrame rows
-    for index, row in df_data.iterrows():
-        try:
-            issue_type = row['fields.issuetype.name']
-            issue_qa_required = safe_get_value_from_dataframe(row, 'fields.customfield_17201.value', "No")
-            issue_key = row['key']
-        except Exception as e:
-            return {"error": True, "error_info": "Jira item not found!"}
-
-        # Check issue type
-        if issue_type == "User Story":  # Use '==' for comparison
-            tot_cnt_stories += 1
-            if issue_qa_required == "Yes":  # Use '==' for comparison
-                tot_qa_required_stories += 1
-        elif issue_type == "Test Plan":  # Use '==' for comparison
-            testPlanID = issue_key
-            tot_cnt_test_plan += 1
-            summary = ""  # Initialize summary variable
-
-            if "fields.summary" in df_data.columns:
-                # Store the whole summary as is, no splitting needed
-                summary = row['fields.summary']  # Get the entire summary
-            
-            test_case_cnts = get_test_cases_status(testPlanID)
-
-            # Check test plan type by looking at the summary directly
-            testPlanType = summary.split(" | ")[0] if " | " in summary else summary  # Get type from summary if exists
-
-            # Check test plan type and append to respective lists with formatting
-            if testPlanType == 'Functional':  # Use '==' for comparison
-                cnt_functional_test_plan += 1
-                functional_test_plan_list.append(f"{testPlanID} - {summary}")  # Add to functional list with summary
-                cnt_auto_in_functional += test_case_cnts['cnt_auto']
-                cnt_functional_test_cases += test_case_cnts['cnt_auto'] + test_case_cnts['cnt_manual']
-            elif testPlanType == 'Regression':  # Use '==' for comparison
-                cnt_regression_test_plan += 1
-                regression_test_plan_list.append(f"{testPlanID} - {summary}")  # Add to regression list with summary
-                cnt_auto_in_regression += test_case_cnts['cnt_auto']
-                cnt_regression_test_cases += test_case_cnts['cnt_auto'] + test_case_cnts['cnt_manual']
-
-    # Return the results, including the lists
-    return {
-        "total_user_stories": tot_cnt_stories,
-        "total_qa_required": tot_qa_required_stories,
-        "total_test_plans": tot_cnt_test_plan,
-        "functional_test_plans": cnt_functional_test_plan,
-        "regression_test_plans": cnt_regression_test_plan,
-        "auto_in_functional": cnt_auto_in_functional,
-        "functional_test_cases": cnt_functional_test_cases,
-        "auto_in_regression": cnt_auto_in_regression,
-        "regression_test_cases": cnt_regression_test_cases,
-        "functional_test_plan_list": functional_test_plan_list,  # List of Functional Test Plans with summaries
-        "regression_test_plan_list": regression_test_plan_list   # List of Regression Test Plans with summaries
-    }
+    # Print distinct components and customfield_17201 values
+    print("Distinct Components in scope:", distinct_components)
+    print("Distinct customfield_17201 values in scope:", distinct_customfield_values)

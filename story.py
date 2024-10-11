@@ -2514,6 +2514,9 @@ print(f"Data has been written to {excel_file}")
 
 
 def dunc():
+    # Define your Jira base URL
+    jira_base_url = "https://ajira.com/browse"
+
     # Initialize variables
     tot_cnt_stories = 0
     tot_qa_required_stories = 0
@@ -2561,8 +2564,9 @@ def dunc():
                     closed_defects += 1
                 else:
                     open_defects += 1
-                    # Append open defect details including components
-                    open_defect_details.append(f"{issue_key} - {summary} ({', '.join(component_names)})")
+                    # Create a clickable link for the issue key
+                    issue_key_link = f'<a href="{jira_base_url}/{issue_key}">{issue_key}</a>'
+                    open_defect_details.append(f"{issue_key_link} - {summary} ({', '.join(component_names)})")
 
         except Exception as e:
             return {"error": True, "error_info": "Jira item not found!"}
@@ -2594,7 +2598,7 @@ def dunc():
     if open_defects > 0:
         defect_info += "\n\nOpen defects details:\n" + "\n".join(open_defect_details)
 
-    # Print defect information in one go
+    # Print or send defect information (if sending via email, ensure it's in HTML format)
     print(defect_info)
 
     # Print distinct components and customfield_17201 values

@@ -2700,12 +2700,15 @@ summary_df['Backlog'] = summary_df[backlog_status].sum(axis=1)
 summary_df['Manual'] = summary_df[manual_status].sum(axis=1)
 summary_df['Total'] = summary_df[['Automated', 'Backlog', 'Manual']].sum(axis=1)
 
+# Calculate the % Automated column
+summary_df['% Automated'] = (summary_df['Automated'] / summary_df['Total']) * 100
+
 # Keep only the required columns
-final_summary_df = summary_df[['Fleet', 'Automated', 'Backlog', 'Manual', 'Total']]
+final_summary_df = summary_df[['Name', 'Squad', 'Automated', 'Backlog', 'Manual', 'Total', '% Automated']]
 
 # Append the new sheet to the workbook
 with pd.ExcelWriter(file_path, engine='openpyxl', mode='a', if_sheet_exists='replace') as writer:
-    final_summary_df.to_excel(writer, sheet_name='By Fleet', index=False)
+    final_summary_df.to_excel(writer, sheet_name='By User', index=False)
 
 print("Data has been successfully written to the new sheet in the workbook.")
 

@@ -154,7 +154,6 @@ def compare_data(old_date, new_date, workbook_name, group_by):
 
     return output
 
-# Generate HTML with expandable sections, tables, gradient text, and dark/light mode toggle
 def generate_html_report(data, table1_html, table2_html, file1_name="File 1", file2_name="File 2", table_border_color="#4a90e2", table_font_family="Arial"):
     html_content = f"""
     <html>
@@ -163,8 +162,8 @@ def generate_html_report(data, table1_html, table2_html, file1_name="File 1", fi
         <style>
             body {{ 
                 font-family: 'Aptos Display', sans-serif;
-                background-color: #eee;
-                color: #eee;
+                background-color: #f4f4f9;  /* Set the default background to light */
+                color: #333;  /* Set the default text color to dark */
                 padding: 20px;
                 line-height: 1.6;
                 transition: background-color 0.3s, color 0.3s;
@@ -195,24 +194,29 @@ def generate_html_report(data, table1_html, table2_html, file1_name="File 1", fi
             }}
             li {{
                 margin-bottom: 8px;
+                color: #333;  /* Default dark color for list items */
+                transition: color 0.3s;
             }}
             table {{
                 width: 80%;
                 margin: 20px auto;
                 border-collapse: collapse;
                 font-family: {table_font_family};
+                transition: background-color 0.3s, color 0.3s;
             }}
             th, td {{
                 border: 1px solid {table_border_color};
                 padding: 8px;
                 text-align: center;
+                transition: background-color 0.3s, color 0.3s;
             }}
             th {{
                 background-color: {table_border_color};
                 color: white;
             }}
             td {{
-                background-color: #444;
+                background-color: #f9f9f9;  /* Default light background for table cells */
+                color: #333;  /* Default dark text for table cells */
             }}
             .toggle-switch {{
                 position: fixed;
@@ -258,8 +262,40 @@ def generate_html_report(data, table1_html, table2_html, file1_name="File 1", fi
             }}
             function toggleTheme() {{
                 var body = document.body;
-                body.style.backgroundColor = body.style.backgroundColor === 'rgb(51, 51, 51)' ? '#f4f4f9' : '#333';
-                body.style.color = body.style.color === 'rgb(51, 51, 51)' ? '#333' : '#eee';
+                var listItems = document.querySelectorAll('li');
+                var tableCells = document.querySelectorAll('td');
+                var tableHeaders = document.querySelectorAll('th');
+                
+                // Toggle background and text color of the body and list items
+                if (body.style.backgroundColor === 'rgb(51, 51, 51)') {{
+                    body.style.backgroundColor = '#f4f4f9';
+                    body.style.color = '#333';
+                    
+                    // Set list items to dark text for light background
+                    listItems.forEach(function(item) {{
+                        item.style.color = '#333';
+                    }});
+
+                    // Set table cells to light mode (light background, dark text)
+                    tableCells.forEach(function(cell) {{
+                        cell.style.backgroundColor = '#f9f9f9';
+                        cell.style.color = '#333';
+                    }});
+                }} else {{
+                    body.style.backgroundColor = '#333';
+                    body.style.color = '#eee';
+                    
+                    // Set list items to light text for dark background
+                    listItems.forEach(function(item) {{
+                        item.style.color = '#eee';
+                    }});
+
+                    // Set table cells to dark mode (dark background, light text)
+                    tableCells.forEach(function(cell) {{
+                        cell.style.backgroundColor = '#444';
+                        cell.style.color = '#eee';
+                    }});
+                }}
             }}
         </script>
     </head>
@@ -314,8 +350,6 @@ def generate_html_report(data, table1_html, table2_html, file1_name="File 1", fi
         file.write(html_content)
 
     print("HTML report with gradient headings and theme toggle has been generated.")
-
-
 
 
 # Usage example

@@ -1,3 +1,19 @@
+  h2::after {{
+                content: '';
+                display: block;
+                height: 2px; /* Thickness of the underline */
+                background-color: #fff; /* Color of the underline */
+                width: 100%; /* Set to full width of the text */
+                transform: scaleX(0); /* Start hidden */
+                transition: transform 0.3s ease; /* Smooth transition */
+                position: absolute;
+                bottom: 0; /* Position the underline at the bottom */
+                left: 0;
+            }}
+            h2:hover::after {{
+                transform: scaleX(1); /* Expand to full width on hover */
+            }}
+
 def generate_html_report(data, table1_html, table2_html, file1_name="File 1", file2_name="File 2", table_border_color="#4a90e2", table_font_family="Arial"):
     html_content = f"""
     <html>

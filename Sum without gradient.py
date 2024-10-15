@@ -1,3 +1,18 @@
+h2::after {{
+                content: '';
+                position: absolute;
+                left: 0;
+                bottom: -2px;
+                width: 0;
+                height: 2px;
+                background: #6a11cb;
+                transition: width 0.3s ease;
+            }}
+            h2:hover::after {{
+                width: 100%; 
+            }}
+
+
 import pandas as pd
 import sys
 

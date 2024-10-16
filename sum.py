@@ -2,10 +2,24 @@ import pandas as pd
 import sys
 
 # Load data from Excel based on date and sheet name
-def load_excel_data(file_date, workbook_name):
-    file_path = f'jan_aug_2024_{file_date}.xlsx'
+def load_excel_data(file_path, workbook_name):
     df = pd.read_excel(file_path, sheet_name=workbook_name)
     return df
+
+# Load and prepare tables from both Excel files for HTML report
+def load_and_prepare_tables(old_file, new_file, workbook_name):
+    # Load data from each file
+    df1 = load_excel_data(old_file, workbook_name)
+    df2 = load_excel_data(new_file, workbook_name)
+    
+    # Generate HTML tables with custom styling
+    table1_html = df1.to_html(index=False, border=0, justify='center', 
+                              classes='dataframe', table_id='table1')
+    table2_html = df2.to_html(index=False, border=0, justify='center', 
+                              classes='dataframe', table_id='table2')
+    
+    # Return tables as HTML
+    return table1_html, table2_html
 
 # Calculate percentage change for absolute increment and decrement
 def calculate_percentage_change(old, new, total_old, total_new, metric):
@@ -26,9 +40,9 @@ def get_users_with_value(df, column, value, group_by):
     return df[df[column] == value][group_by].tolist()
 
 # Compare data and return the summary
-def compare_data(old_date, new_date, workbook_name, group_by):
-    old_df = load_excel_data(old_date, workbook_name)
-    new_df = load_excel_data(new_date, workbook_name)
+def compare_data(old_file, new_file, workbook_name, group_by):
+    old_df = load_excel_data(old_file, workbook_name)
+    new_df = load_excel_data(new_file, workbook_name)
 
     if 'Total' not in new_df.columns:
         new_df['Total'] = new_df['Automated'] + new_df['Manual'] + new_df['Backlog']
@@ -37,7 +51,7 @@ def compare_data(old_date, new_date, workbook_name, group_by):
     output = {}
 
     # Generating summary for each section
-    comparison_summary = f"Comparison Summary based on the latest data from {new_date} using {group_by}:<br><br>"
+    comparison_summary = f"Comparison Summary based on the latest data from {new_file} using {group_by}:<br><br>"
     max_automation_increase = {'user': None, 'change': -float('inf')}
     min_automation_increase = {'user': None, 'change': float('inf')}
     constant_automation_users = []
@@ -46,12 +60,12 @@ def compare_data(old_date, new_date, workbook_name, group_by):
         entity = row[group_by]
         if pd.isna(row['Automated_new']):
             comparison_summary += f"<strong>{entity}</strong><br>"
-            comparison_summary += f"Data for {entity} doesn’t exist in the jan_aug_2024_{new_date}.xlsx.<br><br>"
+            comparison_summary += f"Data for {entity} doesn’t exist in the latest date file {new_file}.<br><br>"
             continue
 
         if pd.isna(row['Automated_old']):
             comparison_summary += f"<strong>{entity}</strong><br>"
-            comparison_summary += f"{entity} seems to be a new entry as there is no data in jan_aug_2024_{old_date}.xlsx.<br>"
+            comparison_summary += f"{entity} seems to be a new entry as there is no data in old file {old_file}.<br>"
             comparison_summary += f"  • Automated test cases are {int(row['Automated_new'])}<br>"
             comparison_summary += f"  • Backlog test cases are {int(row['Backlog_new'])}<br>"
             comparison_summary += f"  • Manual test cases are {int(row['Manual_new'])}<br><br>"
@@ -139,71 +153,106 @@ def compare_data(old_date, new_date, workbook_name, group_by):
 
     return output
 
-# Generate HTML with expandable sections
-def generate_html_report(data):
-    html_content = """
+def generate_html_report(data, table1_html, table2_html, file1_name, file2_name, table_border_color="#4a90e2", table_font_family="Arial"):
+    html_content = f"""
     <html>
     <head>
         <title>Comparison Report</title>
         <style>
-            body { 
+            body {{ 
                 font-family: 'Aptos Display', sans-serif;
-                background-color: #f4f4f9;
-                color: #333;
+                background-color: #f4f4f9;  
+                color: #333;  
                 padding: 20px;
                 line-height: 1.6;
-            }
-            h1 {
+                transition: background-color 0.3s, color 0.3s;
+            }}
+            h1 {{
                 text-align: center;
-                color: #4a90e2;
                 font-size: 36px;
                 margin-bottom: 20px;
-            }
-            h2 { 
-                color: Purple;  /* Tomato color */
+                background: -webkit-linear-gradient(left, #ff7e5f, #feb47b);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+            }}
+            h2 {{ 
                 font-size: 24px;
                 cursor: pointer;
                 margin: 10px 0;
-            }
-            .section-content { 
+                background: -webkit-linear-gradient(left, #6a11cb, #2575fc);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                display: flex; /* Use flexbox to align icon and text */
+                align-items: center; /* Center vertically */
+            }}
+            .toggle-icon {{
+                margin-right: 10px; /* Space between icon and text */
+            }}
+            .section-content {{ 
                 display: none; 
                 padding-left: 20px; 
-            }
-            ul {
+            }}
+            ul {{
                 list-style-type: disc;
                 padding-left: 40px;
-            }
-            li {
+            }}
+            li {{
                 margin-bottom: 8px;
-            }
-            .expand-button {
-                background-color: #4CAF50;
+                color: #333;  
+                transition: color 0.3s;
+            }}
+            table {{
+                width: 80%;
+                margin: 20px auto;
+                border-collapse: collapse;
+                font-family: {table_font_family};
+            }}
+            th, td {{
+                border: 1px solid {table_border_color};
+                padding: 8px;
+                text-align: center;
+            }}
+            th {{
+                background-color: {table_border_color};
                 color: white;
-                border: none;
-                padding: 5px 10px;
-                cursor: pointer;
-                font-size: 14px;
-            }
-            pre {
-                background-color: #f7f7f7;
-                border: 1px solid #ddd;
-                padding: 10px;
-                border-radius: 5px;
-            }
+            }}
+            td {{
+                background-color: #f9f9f9;  
+                color: #333;  
+            }}
         </style>
         <script>
-            function toggleSection(id) {
+            function toggleSection(id, icon) {{
                 var section = document.getElementById(id);
-                if (section.style.display === 'none') {
+                
+                if (section.style.display === 'none') {{
                     section.style.display = 'block';
-                } else {
+                    icon.innerHTML = '&#9660;'; // Downward arrow
+                }} else {{
                     section.style.display = 'none';
-                }
-            }
+                    icon.innerHTML = '&#9654;'; // Rightward arrow
+                }}
+            }}
+
         </script>
     </head>
     <body>
+
         <h1>Comparison Report</h1>
+
+        <h2 onclick="toggleSection('table1', this.querySelector('.toggle-icon'))">
+            <span class="toggle-icon">&#9660;</span> Data from {file1_name}
+        </h2>
+        <div id="table1" class="section-content" style="display: block;">
+            {table1_html}
+        </div>
+
+        <h2 onclick="toggleSection('table2', this.querySelector('.toggle-icon'))">
+            <span class="toggle-icon">&#9660;</span> Data from {file2_name}
+        </h2>
+        <div id="table2" class="section-content" style="display: block;">
+            {table2_html}
+        </div>
     """
 
     # Section ids and titles
@@ -217,19 +266,19 @@ def generate_html_report(data):
         'Entities sorted by automation percentage based on total test cases'
     ]
 
-    # Generate content for each section
     for i, title in enumerate(section_titles):
-        default_display = 'block' if i == 0 else 'none'  # First section expanded by default
-        html_content += f"<h2 onclick=\"toggleSection('{section_ids[i]}')\">{title}</h2>"
+        default_display = 'block' if i == 0 else 'none'
+        icon_direction = '&#9660;' if i == 0 else '&#9654;' 
+        html_content += f"<h2 onclick=\"toggleSection('{section_ids[i]}', this.querySelector('.toggle-icon'))\"><span class='toggle-icon'>{icon_direction}</span> {title}</h2>"
+        
         html_content += f"<div id='{section_ids[i]}' class='section-content' style='display: {default_display};'>"
-
-        # Format the data inside bullet points (if not already formatted)
         html_content += "<ul>"
-        for line in data[title].split("<br>"):
+        
+        for line in data[title].split('<br>'):
             if line.strip():
                 html_content += f"<li>{line.strip()}</li>"
-        html_content += "</ul>"
         
+        html_content += "</ul>"
         html_content += "</div>"
 
     html_content += """
@@ -241,14 +290,20 @@ def generate_html_report(data):
     with open('comparison_report.html', 'w') as file:
         file.write(html_content)
 
-    print("HTML report has been generated.")
+    print("HTML report with expandable sections and toggle icons on the left has been generated.")
 
 # Usage example
-old_date = sys.argv[1]
-new_date = sys.argv[2]
+old_file = sys.argv[1]
+new_file = sys.argv[2]
 workbook_name = sys.argv[3]
-group_by_column = sys.argv[4]
+result_by_column = sys.argv[4]
 
 # Call compare_data and pass the output to the HTML generator
-data = compare_data(old_date, new_date, workbook_name, group_by_column)
-generate_html_report(data)
+
+def generate_comaprison_report(old_file, new_file, workbook_name, result_by_column):
+    table1_html, table2_html = load_and_prepare_tables(old_file, new_file, workbook_name)
+    data = compare_data(old_file, new_file, workbook_name, result_by_column)
+    # Generate HTML report
+    generate_html_report(data, table1_html, table2_html,old_file, new_file, table_border_color="#FF6347", table_font_family="Verdana")
+
+generate_comaprison_report(old_file, new_file, workbook_name, result_by_column)

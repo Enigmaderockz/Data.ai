@@ -2756,3 +2756,11 @@ print(f'Data has been successfully written to {output_file}')
 
 # New requirement: Fetch subtask summary and check for 'risk type' keyword (case-insensitive)
 subtask_with_risk_type = any('risk type' in subtask['fields'].get('summary', '').lower() for subtask in subtasks)
+
+
+
+# Replace the string "null" with None (actual null) in DataFrame1
+df1 = df1.withColumn("column_name", when(col("column_name") == "null", None).otherwise(col("column_name")))
+
+# Replace blank strings with None in DataFrame2
+df2 = df2.withColumn("column_name", when(col("column_name") == "", None).otherwise(col("column_name")))

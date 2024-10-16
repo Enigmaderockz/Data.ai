@@ -2752,3 +2752,7 @@ with pd.ExcelWriter(output_file, engine='openpyxl', mode='w') as writer:
         first_chunk = False  # Disable header after the first chunk
 
 print(f'Data has been successfully written to {output_file}')
+
+
+# New requirement: Fetch subtask summary and check for 'risk type' keyword (case-insensitive)
+subtask_with_risk_type = any('risk type' in subtask['fields'].get('summary', '').lower() for subtask in subtasks)

@@ -1,5 +1,52 @@
 import json
 import requests
+import argparse
+from requests_kerberos import HTTPKerberosAuth, OPTIONAL, DISABLED
+
+# Set up argument parsing
+parser = argparse.ArgumentParser(description="Fetch data from API with Kerberos authentication")
+parser.add_argument("fleet", type=str, help="The fleet parameter for the API")
+parser.add_argument("start_created_date", type=str, help="The start created date (format: YYYY-MM-DD)")
+parser.add_argument("end_created_date", type=str, help="The end created date (format: YYYY-MM-DD)")
+
+# Parse the arguments
+args = parser.parse_args()
+
+# Define the API endpoint with parsed arguments
+domain = "http://oneqretest.ms.com/"
+get_url = f"{domain}api/Jira/jira_issue_tracking_batch?fleet={args.fleet}&start_created_date={args.start_created_date}&end_created_date={args.end_created_date}"
+
+# Function to perform a GET request with Kerberos authentication
+def get_call(url):
+    try:
+        with requests.Session() as session:
+            response = session.get(url, verify=False, auth=HTTPKerberosAuth(force_preemptive=True, mutual_authentication=OPTIONAL))
+            response.raise_for_status()
+            data = response.json()
+
+            with open("response_data.json", "w") as json_file:
+                json.dump(data, json_file, indent=4)
+            print("Response has been successfully written to response_data.json")
+    
+    except requests.exceptions.HTTPError as http_err:
+        print(f"HTTP error occurred: {http_err}")
+    except requests.exceptions.RequestException as req_err:
+        print(f"Request error occurred: {req_err}")
+    except json.JSONDecodeError as json_err:
+        print(f"JSON decoding error occurred: {json_err}")
+    except IOError as io_err:
+        print(f"File I/O error occurred: {io_err}")
+    except Exception as err:
+        print(f"An unexpected error occurred: {err}")
+
+# Call the function with the specified URL
+get_call(get_url)
+
+
+
+
+import json
+import requests
 
 try:
     # Example: API request to get the response

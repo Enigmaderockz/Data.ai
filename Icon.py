@@ -1,3 +1,33 @@
+import json
+import requests
+
+try:
+    # Example: API request to get the response
+    response = requests.get("https://api.example.com/endpoint")
+    response.raise_for_status()  # Raises an HTTPError for bad responses
+
+    # Parse the response text into JSON format
+    data = response.json()
+
+    # Write the JSON data to a file
+    with open("response_data.json", "w") as json_file:
+        json.dump(data, json_file, indent=4)
+    print("Response has been successfully written to response_data.json")
+
+except requests.exceptions.HTTPError as http_err:
+    print(f"HTTP error occurred: {http_err}")
+except requests.exceptions.RequestException as req_err:
+    print(f"Request error occurred: {req_err}")
+except json.JSONDecodeError as json_err:
+    print(f"JSON decoding error occurred: {json_err}")
+except IOError as io_err:
+    print(f"File I/O error occurred: {io_err}")
+except Exception as err:
+    print(f"An unexpected error occurred: {err}")
+
+
+
+
 def generate_html_report(data, table1_html, table2_html, file1_name="File 1", file2_name="File 2", table_border_color="#4a90e2", table_font_family="Arial"):
     html_content = f"""
     <html>

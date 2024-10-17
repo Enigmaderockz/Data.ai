@@ -1,3 +1,9 @@
+DD
+today_date = datetime.today().strftime('%Y-%m-%d')
+
+# Define the filename with today's date
+filename = f"result_{today_date}.json"
+
 import json
 import requests
 import argparse

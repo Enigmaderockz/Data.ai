@@ -2764,3 +2764,111 @@ df1 = df1.withColumn("column_name", when(col("column_name") == "null", None).oth
 
 # Replace blank strings with None in DataFrame2
 df2 = df2.withColumn("column_name", when(col("column_name") == "", None).otherwise(col("column_name")))
+
+
+
+
+
+
+
+#### GROUPING....................
+
+
+def dunc():
+    # Define your Jira base URL
+    jira_base_url = "https://ajira.com/browse"
+
+    # Initialize variables
+    tot_cnt_stories = 0
+    tot_qa_required_stories = 0
+    tot_cnt_test_plan = 0
+    cnt_functional_test_plan = 0
+    cnt_auto_in_functional = 0
+    cnt_functional_test_cases = 0
+    cnt_regression_test_plan = 0
+    cnt_auto_in_regression = 0
+    cnt_regression_test_cases = 0
+
+    # Sets to capture distinct components and customfield_17201 values
+    distinct_components = set()
+    distinct_customfield_values = set()
+
+    # Defect-related variables
+    total_defects = 0
+    closed_defects = 0
+    open_defects = 0
+    open_defects_by_component = {}
+
+    for index, row in df_data.iterrows():
+        try:
+            issue_type = row['fields.issuetype.name']
+            issue_qa_required = row.get('fields.customfield_17201.value', "No")
+            issue_key = row['key']
+            status = row['fields.status.name']
+            summary = row.get('fields.summary', '')
+
+            # Collect distinct component values
+            components = row.get('fields.components', [])
+            component_names = [component.get('name') for component in components]
+
+            for component_name in component_names:
+                distinct_components.add(component_name)
+
+            # Collect distinct customfield_17201 values
+            customfield_value = row.get('fields.customfield_17201.value')
+            if customfield_value:
+                distinct_customfield_values.add(customfield_value)
+
+            # Defect handling
+            if issue_type in ["Defect Sub-Task", "Bug", "Dev_Bug"]:
+                total_defects += 1
+                if status == "Closed":
+                    closed_defects += 1
+                else:
+                    open_defects += 1
+                    # Create a clickable link for the issue key
+                    issue_key_link = f'<a href="{jira_base_url}/{issue_key}">{issue_key}</a>'
+                    defect_entry = f"{issue_key_link} - {summary}"
+
+                    # Group open defects by component
+                    for component_name in component_names:
+                        if component_name not in open_defects_by_component:
+                            open_defects_by_component[component_name] = []
+                        open_defects_by_component[component_name].append(defect_entry)
+
+        except Exception as e:
+            return {"error": True, "error_info": "Jira item not found!"}
+
+        if issue_type == "User Story":
+            tot_cnt_stories += 1
+            if issue_qa_required == "Yes":
+                tot_qa_required_stories += 1
+        elif issue_type == "Test Plan":
+            testPlanID = issue_key
+            tot_cnt_test_plan += 1
+            testPlanType = ''
+            if "fields.summary" in df_data.columns:
+                summary = row['fields.summary'].split(" | ")
+                if len(summary) > 2:
+                    testPlanType = summary[1]  # get test plan type from summary
+            test_case_cnts = get_test_cases_status(testPlanID)
+            if testPlanType == 'Functional':
+                cnt_functional_test_plan += 1
+                cnt_auto_in_functional += test_case_cnts['cnt_auto']
+                cnt_functional_test_cases += test_case_cnts['cnt_auto'] + test_case_cnts['cnt_manual']
+            elif testPlanType == 'Regression':
+                cnt_regression_test_plan += 1
+                cnt_auto_in_regression += test_case_cnts['cnt_auto']
+                cnt_regression_test_cases += test_case_cnts['cnt_auto'] + test_case_cnts['cnt_manual']
+
+    # Prepare defect information by component
+    defect_info = f"Total defects: {total_defects} Closed defects: {closed_defects} Open defects: {open_defects}"
+    
+    if open_defects > 0:
+        defect_info += "\n\nOpen defects details:\n"
+        for component, defects in open_defects_by_component.items():
+            defect_info += f"\n{component}\n"
+            defect_info += "\n".join(defects)
+
+    # Print or send defect information (if sending via email, ensure it's in HTML format)
+    print(defect_info)

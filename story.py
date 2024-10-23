@@ -2877,7 +2877,4 @@ def dunc():
 
 
 Executive Summary:
-The MLOps QA team developed an advanced tool to monitor feature data distribution in model training and scoring tables. It provides real-time tracking of statistical values, detects percentage changes between batches, and triggers alerts based on set thresholds. This tool enhances data accuracy, correctness, and testing efficiency, offering real-time insights into data quality.
-
-Business Impact:
-It enables timely alerts for data issues, improves data quality, and fosters collaboration between MLOps QA, Dev, and Data Science teams.
+The MLOps QA team built a tool for real-time feature monitoring, cutting manual efforts by 70%, detecting data drifts, and enhancing accuracy and scalability.

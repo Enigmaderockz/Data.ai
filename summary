@@ -1,0 +1,22 @@
+Overview:
+The Jira Compliance Utility is an automated solution designed to ensure that Jira issues adhere to defined compliance checks and guidelines consistently and efficiently. It streamlines the verification of key fields and workflows, reducing manual effort and minimizing errors in data entry. This utility automates the retrieval of issues from a Jira server based on JQL and checks the compliance standards like if team members are updating critical fields based on predefined rules and project standards. It colour highlights discrepancies, generates feedback comments based on the compliance rules, and provides users action items to be taken for maintaining compliance.
+Problem statement:
+When team members manually update Jira issues like stories or defects, JIRA fields such as acceptance criteria, QA assignee, upload test cases to the stories, it becomes critical to verify these updates done by the team members. However, manually verifying JIRA fields can lead to errors, missed entries, or incomplete data, impacting reporting accuracy and team alignment.
+Key Challenges:
+While updating status of the linked defects or subtasks, Test cases, JIRA Fields such as Acceptance Criteria, Test Cases, and requirement status manually often get overlooked or improperly filled, leading to:
+•	Poor Test Case Management: Lack of checks for uploaded test cases and their status, especially ensuring all are Passed when a story is marked as Closed.
+•	Inconsistent Data Quality: Incomplete or incorrectly filled fields impact reporting accuracy and team alignment.
+•	Poor defect status tracking: Linked defects or subtasks can remain unresolved due to manual oversight.
+•	Wasted Time: Manual JIRA issues reviews consume significant time from project leads and team members.
+•	Reduced Accountability: Lack of systematic checks makes it difficult to track discrepancies.
+•	Delayed Corrections: Manual validation leads to delays in identifying and resolving issues.
+Without a utility to automate these JIRA compliance checks, teams face the burden of extensive manual validation, risking the quality and efficiency of their workflows.
+Use cases:
+
+1.	Quality Assurance checks
+2.	Acceptance criteria checks
+3.	Analysis of linked defects and subtasks
+4.	
+
+
+

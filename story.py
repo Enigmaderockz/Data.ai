@@ -2876,9 +2876,8 @@ def dunc():
 
 
 
-Executive Summary
-The MLOps QA team has introduced an advanced tool designed to oversee the distribution of data features in model training and scoring tables. This state-of-the-art solution facilitates real-time monitoring of numerical statistics, identifies percentage variations across different batches, and activates alerts when specific thresholds are met. By utilizing this tool, we have greatly enhanced data integrity, precision, and testing effectiveness, ultimately providing the business with immediate insights into data quality.
-Business Impact
-Real-time Alerts: Stakeholders are promptly informed of any data quality issues, allowing for swift corrective measures.
-Improved Data Quality: The tool guarantees the accuracy and reliability of data, minimizing the likelihood of downstream errors and enhancing overall model performance.
-Enhanced Collaboration: The success of the MLOps QA team highlights the importance of teamwork among MLOps QA, MLOps Dev, and Data Science teams, fostering business success through informed decision-making based on data.
+Executive Summary:
+The MLOps QA team developed an advanced tool to monitor feature data distribution in model training and scoring tables. It provides real-time tracking of statistical values, detects percentage changes between batches, and triggers alerts based on set thresholds. This tool enhances data accuracy, correctness, and testing efficiency, offering real-time insights into data quality.
+
+Business Impact:
+It enables timely alerts for data issues, improves data quality, and fosters collaboration between MLOps QA, Dev, and Data Science teams.

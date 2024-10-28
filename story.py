@@ -3019,7 +3019,7 @@ def save_html_report(component_name, table_html, directory=None):
             .toggle-slider {{
                 width: 50px;
                 height: 24px;
-                background-color: #ccc; /* Light mode slider */
+                background-color: #4caf50; /* Green slider for both modes */
                 border-radius: 50px;
                 position: relative;
                 cursor: pointer;
@@ -3034,17 +3034,11 @@ def save_html_report(component_name, table_html, directory=None):
                 background-color: #333; /* Dark knob in light mode */
                 transition: transform 0.2s ease-in-out, background-color 0.2s ease-in-out;
             }}
-            input:checked + .toggle-slider {{
-                background-color: #4caf50; /* Green when checked */
-            }}
             input:checked + .toggle-slider::before {{
                 transform: translateX(26px); /* Move the slider */
             }}
-            /* Dark mode slider styles */
-            .dark-slider {{
-                background-color: #4caf50; /* Green slider in dark mode */
-            }}
-            .dark-slider::before {{
+            /* Dark mode knob styles */
+            .dark-knob::before {{
                 background-color: white; /* White knob in dark mode */
             }}
             table {{
@@ -3077,11 +3071,11 @@ def save_html_report(component_name, table_html, directory=None):
                 
                 body.classList.toggle('dark-mode');
                 
-                // Toggle slider color based on mode
+                // Toggle knob color based on mode
                 if (body.classList.contains('dark-mode')) {{
-                    slider.classList.add('dark-slider');
+                    slider.classList.add('dark-knob');
                 }} else {{
-                    slider.classList.remove('dark-slider');
+                    slider.classList.remove('dark-knob');
                 }}
             }}
         </script>

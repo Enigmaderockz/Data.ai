@@ -2999,10 +2999,45 @@ def save_html_report(component_name, table_html, directory=None):
                 font-family: Arial, sans-serif;
                 background-color: #ffffff; /* Default light mode background */
                 color: #000000; /* Default light mode text color */
+                margin: 0;
+                padding: 20px;
             }}
             .dark-mode {{
                 background-color: #121212; /* Dark mode background */
                 color: #ffffff; /* Dark mode text color */
+            }}
+            .toggle-switch {{
+                position: absolute;
+                top: 20px;
+                right: 20px;
+                display: flex;
+                align-items: center;
+            }}
+            .toggle-switch input {{
+                display: none;
+            }}
+            .toggle-slider {{
+                width: 50px;
+                height: 24px;
+                background-color: #ccc;
+                border-radius: 50px;
+                position: relative;
+                cursor: pointer;
+            }}
+            .toggle-slider::before {{
+                content: "";
+                position: absolute;
+                width: 22px;
+                height: 22px;
+                border-radius: 50%;
+                background-color: white;
+                transition: transform 0.2s ease-in-out;
+            }}
+            input:checked + .toggle-slider {{
+                background-color: #4caf50; /* Green when checked */
+            }}
+            input:checked + .toggle-slider::before {{
+                transform: translateX(26px); /* Move the slider */
             }}
             table {{
                 border-collapse: separate;
@@ -3035,8 +3070,13 @@ def save_html_report(component_name, table_html, directory=None):
         </script>
     </head>
     <body>
+        <div class="toggle-switch">
+            <label>
+              <input type="checkbox" onchange="toggleDarkMode()">
+              <span class="toggle-slider"></span>
+            </label>
+        </div>
         <h2>Report for {component_name}</h2>
-        <button onclick="toggleDarkMode()">Toggle Dark Mode</button>
         {table_html}
     </body>
     </html>

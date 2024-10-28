@@ -3001,6 +3001,7 @@ def save_html_report(component_name, table_html, directory=None):
                 color: #000000; /* Default light mode text color */
                 margin: 0;
                 padding: 20px;
+                position: relative; /* Allow absolute positioning of toggle */
             }}
             .dark-mode {{
                 background-color: #121212; /* Dark mode background */
@@ -3009,7 +3010,8 @@ def save_html_report(component_name, table_html, directory=None):
             .toggle-switch {{
                 position: absolute;
                 top: 20px;
-                right: 20px;
+                left: 50%;
+                transform: translateX(-50%);
                 display: flex;
                 align-items: center;
             }}
@@ -3023,6 +3025,7 @@ def save_html_report(component_name, table_html, directory=None):
                 border-radius: 50px;
                 position: relative;
                 cursor: pointer;
+                transition: background-color 0.2s ease-in-out;
             }}
             .toggle-slider::before {{
                 content: "";

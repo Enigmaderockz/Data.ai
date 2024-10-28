@@ -2985,144 +2985,162 @@ def dunc():
 
 
 
-def save_html_report(component_name, table_html, directory=None):
-    if directory is None:
-        directory = os.getcwd()  # Use the current working directory if no directory is provided
-    file_name = f"report_{component_name}.html"
-    file_path = os.path.join(directory, file_name)
+from datetime import datetime
 
-    # HTML content with toggle switch for dark mode and light mode
-    full_html = f"""
-    <html>
+def save_html_report(data, report_name="Report for Component XYZ"):
+    # Set a filename based on the current timestamp
+    filename = f"report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.html"
+    
+    # Generate the HTML content
+    html_content = f"""
+    <!DOCTYPE html>
+    <html lang="en">
     <head>
+        <meta charset="UTF-8">
+        <title>{report_name}</title>
         <style>
-            /* Main Style */
             body {{
                 font-family: Arial, sans-serif;
-                background-color: #fff;
-                color: #000;
-                transition: background-color 0.3s, color 0.3s;
+                transition: background-color 0.3s ease, color 0.3s ease;
             }}
-            h2 {{
-                text-align: center;
+
+            .toggle-container {{
+                position: absolute;
+                top: 20px;
+                left: 50%;
+                transform: translateX(-50%);
             }}
-            /* Table Styles */
-            table {{
-                border-collapse: separate;
-                border-spacing: 0;
-                width: 100%;
-                border-radius: 10px;
-                overflow: hidden;
-                transition: background-color 0.3s, color 0.3s;
+
+            .switch {{
+                position: relative;
+                display: inline-block;
+                width: 60px;
+                height: 34px;
             }}
-            th, td {{
-                padding: 8px;
-                text-align: left;
-                border: 1px solid #ddd;
-                transition: background-color 0.3s, color 0.3s;
+
+            .switch input {{
+                opacity: 0;
+                width: 0;
+                height: 0;
             }}
-            th {{
-                background-color: #f2f2f2;
-                font-weight: bold;
+
+            .slider {{
+                position: absolute;
+                cursor: pointer;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background-color: #ccc;
+                transition: 0.4s;
+                border-radius: 34px;
             }}
-            tr:nth-child(even) {{
-                background-color: #f9f9f9;
+
+            .slider:before {{
+                position: absolute;
+                content: "";
+                height: 26px;
+                width: 26px;
+                left: 4px;
+                bottom: 4px;
+                background-color: black; /* Black knob for light mode */
+                transition: 0.4s;
+                border-radius: 50%;
             }}
-            tr:hover {{
-                background-color: #f1f1f1;
+
+            input:checked + .slider {{
+                background-color: green;
+            }}
+
+            input:checked + .slider:before {{
+                transform: translateX(26px);
+                background-color: white; /* White knob for dark mode */
             }}
 
             /* Dark mode styles */
             body.dark-mode {{
-                background-color: #333;
-                color: #f2f2f2;
-            }}
-            table.dark-mode {{
-                border-color: #666;
-            }}
-            th.dark-mode {{
-                background-color: #555;
-                color: #fff;
-            }}
-            tr.dark-mode:nth-child(even) {{
-                background-color: #444;
-            }}
-            tr.dark-mode:hover {{
-                background-color: #555;
-            }}
-            td.dark-mode {{
-                border-color: #666;
+                background-color: #121212;
+                color: #e0e0e0;
             }}
 
-            /* Toggle Switch Styles */
-            .switch {{
-                position: absolute;
-                top: 10px;
-                left: 50%;
-                transform: translateX(-50%);
-                display: flex;
-                align-items: center;
+            table {{
+                width: 100%;
+                border-collapse: collapse;
             }}
-            .switch input {{
-                display: none;
+
+            th, td {{
+                padding: 10px;
+                border: 1px solid #ddd;
+                text-align: left;
             }}
-            .slider {{
-                width: 60px;
-                height: 34px;
-                background-color: #ccc;
-                border-radius: 34px;
-                position: relative;
-                cursor: pointer;
-                transition: background-color 0.3s;
+
+            th {{
+                background-color: #f2f2f2;
             }}
-            .slider::before {{
-                content: "";
-                position: absolute;
-                width: 26px;
-                height: 26px;
-                background-color: #000;
-                border-radius: 50%;
-                top: 4px;
-                left: 4px;
-                transition: transform 0.3s, background-color 0.3s;
+
+            tr:nth-child(even) {{
+                background-color: #f9f9f9;
             }}
-            .switch input:checked + .slider {{
-                background-color: #4CAF50;
+
+            /* Dark mode table styles */
+            body.dark-mode th {{
+                background-color: #333;
             }}
-            .switch input:checked + .slider::before {{
-                transform: translateX(26px);
-                background-color: #fff;
+
+            body.dark-mode tr:nth-child(even) {{
+                background-color: #444;
+            }}
+
+            body.dark-mode tr:hover {{
+                background-color: #555;
             }}
         </style>
     </head>
     <body>
-        <h2>Report for {component_name}</h2>
-        <div class="switch">
-            <input type="checkbox" id="mode-toggle">
-            <div class="slider"></div>
+        <div class="toggle-container">
+            <label class="switch">
+                <input type="checkbox" id="modeToggle">
+                <span class="slider"></span>
+            </label>
         </div>
-        {table_html}
-        <script>
-            // JavaScript to toggle dark mode
-            const toggleSwitch = document.getElementById('mode-toggle');
-            const body = document.body;
-            const table = document.querySelector('table');
-            const ths = document.querySelectorAll('th');
-            const trs = document.querySelectorAll('tr');
-            const tds = document.querySelectorAll('td');
 
-            toggleSwitch.addEventListener('change', () => {{
-                body.classList.toggle('dark-mode');
-                table.classList.toggle('dark-mode');
-                ths.forEach(th => th.classList.toggle('dark-mode'));
-                trs.forEach(tr => tr.classList.toggle('dark-mode'));
-                tds.forEach(td => td.classList.toggle('dark-mode'));
-            }});
+        <h2>{report_name}</h2>
+        <table>
+            <tr>
+                <th>Serial No</th>
+                <th>Story</th>
+                <th>Summary</th>
+                <th>Status</th>
+            </tr>
+    """
+
+    # Add data rows to the table
+    for i, row in enumerate(data, start=1):
+        html_content += f"""
+            <tr>
+                <td>{i}</td>
+                <td>{row.get('Story')}</td>
+                <td>{row.get('Summary')}</td>
+                <td>{row.get('Status')}</td>
+            </tr>
+        """
+
+    # Close the table and HTML tags
+    html_content += """
+        </table>
+
+        <script>
+            const toggleSwitch = document.getElementById('modeToggle');
+            toggleSwitch.addEventListener('change', function () {
+                document.body.classList.toggle('dark-mode', toggleSwitch.checked);
+            });
         </script>
     </body>
     </html>
     """
-    
-    with open(file_path, "w", encoding="utf-8") as file:
-        file.write(full_html)
-    return file_path
+
+    # Write the HTML content to the file
+    with open(filename, 'w') as file:
+        file.write(html_content)
+
+    print(f"Report saved as {filename}")

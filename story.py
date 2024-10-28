@@ -2987,3 +2987,153 @@ def dunc():
 
 
 
+from bs4 import BeautifulSoup
+
+def add_dark_mode_toggle(html_file_path):
+    # Read the HTML file
+    with open(html_file_path, 'r', encoding='utf-8') as file:
+        soup = BeautifulSoup(file, 'html.parser')
+    
+    # Add CSS for dark mode
+    style_tag = soup.new_tag("style")
+    style_tag.string = """
+    body {
+        background-color: white;
+        color: black;
+        transition: background-color 0.3s, color 0.3s;
+    }
+
+    /* Toggle Switch Styles */
+    .toggle-switch {
+        position: absolute;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+    }
+    .switch {
+        position: relative;
+        display: inline-block;
+        width: 40px;  /* Decreased width */
+        height: 20px; /* Decreased height */
+    }
+    .switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+    .slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #ccc;
+        transition: 0.4s;
+    }
+    .slider:before {
+        position: absolute;
+        content: "";
+        height: 16px;  /* Decreased height */
+        width: 16px;   /* Decreased width */
+        left: 2px;
+        bottom: 2px;
+        background-color: black;
+        transition: 0.4s;
+    }
+    input:checked + .slider {
+        background-color: green;
+    }
+    input:checked + .slider:before {
+        transform: translateX(20px);  /* Adjusted based on the new switch width */
+        background-color: white;
+    }
+    .slider.round {
+        border-radius: 20px;  /* Adjusted based on new switch height */
+    }
+    .slider.round:before {
+        border-radius: 50%;
+    }
+
+    /* Table Header Styles */
+    th.white-purple {
+        background-color: white;
+        color: purple;
+    }
+    th.light-purple-navy {
+        background-color: #E6E6FA; /* light purple */
+        color: navy;
+    }
+
+    /* Table Cell Highlight Styles */
+    td.yellow-highlight {
+        background-color: yellow;
+    }
+    td.red-highlight {
+        background-color: red;
+        color: white;
+    }
+
+    /* Dark Mode Styles */
+    body.dark-mode {
+        background-color: #121212;
+        color: white;
+    }
+    body.dark-mode th.white-purple {
+        background-color: black;
+        color: white;
+    }
+    body.dark-mode th.light-purple-navy {
+        background-color: black;
+        color: white;
+    }
+    body.dark-mode th.white-purple.header-5 {
+        background-color: blue;
+        color: white;
+    }
+    
+    body.dark-mode td:not(.red-highlight):not(.yellow-highlight) {
+        background-color: black;
+        color: white;
+    }
+    
+    """
+    soup.head.append(style_tag)
+    
+    # Add toggle switch HTML
+    toggle_switch_html = """
+    <div class="toggle-switch">
+        <label class="switch">
+            <input type="checkbox" id="modeToggle">
+            <span class="slider round"></span>
+        </label>
+    </div>
+    """
+    soup.body.insert(0, BeautifulSoup(toggle_switch_html, 'html.parser'))
+
+    # Add JavaScript for toggling dark mode
+    script_tag = soup.new_tag("script")
+    script_tag.string = """
+    const modeToggle = document.getElementById('modeToggle');
+    modeToggle.addEventListener('change', () => {
+        document.body.classList.toggle('dark-mode');
+    });
+    """
+    soup.body.append(script_tag)
+
+    # Save the modified HTML file
+    with open("modified_" + html_file_path, 'w', encoding='utf-8') as file:
+        file.write(str(soup))
+
+    print(f"Dark mode toggle has been added to {html_file_path}. Output file is modified_{html_file_path}.")
+
+# Example usage:
+add_dark_mode_toggle("table.html")
+
+
+'''
+body.dark-mode td:not([style*="background-color: ##E6E6FA"]):not([style*="background-color: #ffff00"]) {
+    background-color: black;
+    color: white;
+}
+'''

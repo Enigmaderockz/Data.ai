@@ -2982,3 +2982,67 @@ def dunc():
 
     # Print or send defect information (if sending via email, ensure it's in HTML format)
     print(defect_info)
+
+
+
+def save_html_report(component_name, table_html, directory=None):
+    if directory is None:
+        directory = os.getcwd()  # Use the current working directory if no directory is provided
+    file_name = f"report_{component_name}.html"
+    file_path = os.path.join(directory, file_name)
+    
+    full_html = f"""
+    <html>
+    <head>
+        <style>
+            body {{
+                font-family: Arial, sans-serif;
+                background-color: #ffffff; /* Default light mode background */
+                color: #000000; /* Default light mode text color */
+            }}
+            .dark-mode {{
+                background-color: #121212; /* Dark mode background */
+                color: #ffffff; /* Dark mode text color */
+            }}
+            table {{
+                border-collapse: separate;
+                border-spacing: 0;
+                width: 100%;
+                border-radius: 10px; /* Rounded corners */
+                overflow: hidden;
+            }}
+            th, td {{
+                padding: 8px;
+                text-align: left;
+                border: 1px solid #ddd;
+            }}
+            th {{
+                background-color: #f2f2f2;
+                font-weight: bold;
+            }}
+            tr:nth-child(even) {{
+                background-color: #f9f9f9;
+            }}
+            tr:hover {{
+                background-color: #f1f1f1;
+            }}
+        </style>
+        <script>
+            function toggleDarkMode() {{
+                const body = document.body;
+                body.classList.toggle('dark-mode');
+            }}
+        </script>
+    </head>
+    <body>
+        <h2>Report for {component_name}</h2>
+        <button onclick="toggleDarkMode()">Toggle Dark Mode</button>
+        {table_html}
+    </body>
+    </html>
+    """
+    
+    with open(file_path, "w", encoding="utf-8") as file:
+        file.write(full_html)
+    
+    return file_path

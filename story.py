@@ -3047,6 +3047,7 @@ def save_html_report(component_name, table_html, directory=None):
                 width: 100%;
                 border-radius: 10px; /* Rounded corners */
                 overflow: hidden;
+                color: #000000; /* Default text color for light mode */
             }}
             th, td {{
                 padding: 8px;
@@ -3062,6 +3063,19 @@ def save_html_report(component_name, table_html, directory=None):
             }}
             tr:hover {{
                 background-color: #f1f1f1;
+            }}
+            /* Dark mode table text color */
+            .dark-mode table {{
+                color: #ffffff; /* White text in dark mode */
+            }}
+            .dark-mode th {{
+                background-color: #333333; /* Darker header background in dark mode */
+            }}
+            .dark-mode tr:nth-child(even) {{
+                background-color: #2a2a2a; /* Slightly darker row in dark mode */
+            }}
+            .dark-mode tr:hover {{
+                background-color: #3a3a3a; /* Darker hover effect in dark mode */
             }}
         </style>
         <script>
@@ -3088,3 +3102,5 @@ def save_html_report(component_name, table_html, directory=None):
         file.write(full_html)
     
     return file_path
+
+    

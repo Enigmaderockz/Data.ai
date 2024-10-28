@@ -2991,68 +2991,35 @@ def save_html_report(component_name, table_html, directory=None):
     file_name = f"report_{component_name}.html"
     file_path = os.path.join(directory, file_name)
 
+    # HTML content with toggle switch for dark mode and light mode
     full_html = f"""
     <html>
     <head>
         <style>
+            /* Main Style */
             body {{
                 font-family: Arial, sans-serif;
-                background-color: #ffffff; /* Default light mode background */
-                color: #000000; /* Default light mode text color */
-                margin: 0;
-                padding: 20px;
+                background-color: #fff;
+                color: #000;
+                transition: background-color 0.3s, color 0.3s;
             }}
-            .dark-mode {{
-                background-color: #121212; /* Dark mode background */
-                color: #ffffff; /* Dark mode text color */
+            h2 {{
+                text-align: center;
             }}
-            .toggle-switch {{
-                position: absolute;
-                top: 20px;
-                right: 40px; /* Adjusted to move switch towards the left */
-                display: flex;
-                align-items: center;
-            }}
-            .toggle-switch input {{
-                display: none;
-            }}
-            .toggle-slider {{
-                width: 50px;
-                height: 24px;
-                background-color: #4caf50; /* Green slider for both modes */
-                border-radius: 50px;
-                position: relative;
-                cursor: pointer;
-                transition: background-color 0.2s ease-in-out;
-            }}
-            .toggle-slider::before {{
-                content: "";
-                position: absolute;
-                width: 22px;
-                height: 22px;
-                border-radius: 50%;
-                background-color: #333; /* Dark knob in light mode */
-                transition: transform 0.2s ease-in-out, background-color 0.2s ease-in-out;
-            }}
-            input:checked + .toggle-slider::before {{
-                transform: translateX(26px); /* Move the slider */
-            }}
-            /* Dark mode knob styles */
-            .dark-mode .toggle-slider::before {{
-                background-color: white; /* White knob in dark mode */
-            }}
+            /* Table Styles */
             table {{
                 border-collapse: separate;
                 border-spacing: 0;
                 width: 100%;
-                border-radius: 10px; /* Rounded corners */
+                border-radius: 10px;
                 overflow: hidden;
-                color: #000000; /* Default text color for light mode */
+                transition: background-color 0.3s, color 0.3s;
             }}
             th, td {{
                 padding: 8px;
                 text-align: left;
                 border: 1px solid #ddd;
+                transition: background-color 0.3s, color 0.3s;
             }}
             th {{
                 background-color: #f2f2f2;
@@ -3064,43 +3031,98 @@ def save_html_report(component_name, table_html, directory=None):
             tr:hover {{
                 background-color: #f1f1f1;
             }}
-            /* Dark mode table text color */
-            .dark-mode table {{
-                color: #ffffff; /* White text in dark mode */
+
+            /* Dark mode styles */
+            body.dark-mode {{
+                background-color: #333;
+                color: #f2f2f2;
             }}
-            .dark-mode th {{
-                background-color: #333333; /* Darker header background in dark mode */
+            table.dark-mode {{
+                border-color: #666;
             }}
-            .dark-mode tr:nth-child(even) {{
-                background-color: #2a2a2a; /* Slightly darker row in dark mode */
+            th.dark-mode {{
+                background-color: #555;
+                color: #fff;
             }}
-            .dark-mode tr:hover {{
-                background-color: #3a3a3a; /* Darker hover effect in dark mode */
+            tr.dark-mode:nth-child(even) {{
+                background-color: #444;
+            }}
+            tr.dark-mode:hover {{
+                background-color: #555;
+            }}
+            td.dark-mode {{
+                border-color: #666;
+            }}
+
+            /* Toggle Switch Styles */
+            .switch {{
+                position: absolute;
+                top: 10px;
+                left: 50%;
+                transform: translateX(-50%);
+                display: flex;
+                align-items: center;
+            }}
+            .switch input {{
+                display: none;
+            }}
+            .slider {{
+                width: 60px;
+                height: 34px;
+                background-color: #ccc;
+                border-radius: 34px;
+                position: relative;
+                cursor: pointer;
+                transition: background-color 0.3s;
+            }}
+            .slider::before {{
+                content: "";
+                position: absolute;
+                width: 26px;
+                height: 26px;
+                background-color: #000;
+                border-radius: 50%;
+                top: 4px;
+                left: 4px;
+                transition: transform 0.3s, background-color 0.3s;
+            }}
+            .switch input:checked + .slider {{
+                background-color: #4CAF50;
+            }}
+            .switch input:checked + .slider::before {{
+                transform: translateX(26px);
+                background-color: #fff;
             }}
         </style>
-        <script>
-            function toggleDarkMode() {{
-                const body = document.body;
-                body.classList.toggle('dark-mode');
-            }}
-        </script>
     </head>
     <body>
-        <div class="toggle-switch">
-            <label>
-              <input type="checkbox" onchange="toggleDarkMode()">
-              <span class="toggle-slider"></span>
-            </label>
-        </div>
         <h2>Report for {component_name}</h2>
+        <div class="switch">
+            <input type="checkbox" id="mode-toggle">
+            <div class="slider"></div>
+        </div>
         {table_html}
+        <script>
+            // JavaScript to toggle dark mode
+            const toggleSwitch = document.getElementById('mode-toggle');
+            const body = document.body;
+            const table = document.querySelector('table');
+            const ths = document.querySelectorAll('th');
+            const trs = document.querySelectorAll('tr');
+            const tds = document.querySelectorAll('td');
+
+            toggleSwitch.addEventListener('change', () => {{
+                body.classList.toggle('dark-mode');
+                table.classList.toggle('dark-mode');
+                ths.forEach(th => th.classList.toggle('dark-mode'));
+                trs.forEach(tr => tr.classList.toggle('dark-mode'));
+                tds.forEach(td => td.classList.toggle('dark-mode'));
+            }});
+        </script>
     </body>
     </html>
     """
     
     with open(file_path, "w", encoding="utf-8") as file:
         file.write(full_html)
-    
     return file_path
-
-    

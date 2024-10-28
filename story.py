@@ -3038,7 +3038,7 @@ def save_html_report(component_name, table_html, directory=None):
                 transform: translateX(26px); /* Move the slider */
             }}
             /* Dark mode knob styles */
-            .dark-knob::before {{
+            .dark-mode .toggle-slider::before {{
                 background-color: white; /* White knob in dark mode */
             }}
             table {{
@@ -3067,16 +3067,7 @@ def save_html_report(component_name, table_html, directory=None):
         <script>
             function toggleDarkMode() {{
                 const body = document.body;
-                const slider = document.querySelector('.toggle-slider');
-                
                 body.classList.toggle('dark-mode');
-                
-                // Toggle knob color based on mode
-                if (body.classList.contains('dark-mode')) {{
-                    slider.classList.add('dark-knob');
-                }} else {{
-                    slider.classList.remove('dark-knob');
-                }}
             }}
         </script>
     </head>

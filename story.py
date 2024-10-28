@@ -2993,6 +2993,16 @@ def add_dark_mode_toggle(html_file_path):
     # Read the HTML file
     with open(html_file_path, 'r', encoding='utf-8') as file:
         soup = BeautifulSoup(file, 'html.parser')
+
+    # Ensure the <head> tag exists
+    if soup.head is None:
+        soup.head = soup.new_tag("head")
+        soup.insert(0, soup.head)
+
+    # Ensure the <body> tag exists
+    if soup.body is None:
+        soup.body = soup.new_tag("body")
+        soup.append(soup.body)
     
     # Add CSS for dark mode
     style_tag = soup.new_tag("style")

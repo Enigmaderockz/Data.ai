@@ -3147,3 +3147,8 @@ body.dark-mode td:not([style*="background-color: ##E6E6FA"]):not([style*="backgr
     color: white;
 }
 '''
+
+body.dark-mode th[style*="background-color: #121212"] {
+    background-color: #ffffff !important; /* New background color */
+    color: #456736 !important; /* New text color */
+}

@@ -3180,3 +3180,11 @@ def save_html_report(component_name, table_html, directory=None):
     with open(file_path, "w", encoding="utf-8") as file:
         file.write(full_html)
     return file_path
+
+
+body {
+        font-family: 'Helvetica', 'Arial', sans-serif;
+        background-color: white;
+        color: black;
+        transition: background-color 0.3s, color 0.3s;
+    }

@@ -3152,3 +3152,31 @@ body.dark-mode th[style*="background-color: #121212"] {
     background-color: #ffffff !important; /* New background color */
     color: #456736 !important; /* New text color */
 }
+
+
+
+import os
+
+def save_html_report(component_name, table_html, directory=None):
+    if directory is None:
+        directory = os.getcwd()  # Use the current working directory if no directory is provided
+    file_name = f"report_{component_name}.html"
+    file_path = os.path.join(directory, file_name)
+    full_html = f"""
+    <html>
+    <head>
+        <style>
+            h2 {{
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            }}
+        </style>
+    </head>
+    <body>
+        <h2>Report for {component_name}</h2>
+        {table_html}
+    </body>
+    </html>
+    """
+    with open(file_path, "w", encoding="utf-8") as file:
+        file.write(full_html)
+    return file_path

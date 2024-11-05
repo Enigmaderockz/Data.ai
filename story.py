@@ -3190,7 +3190,21 @@ body {
     }
 
 
-
 def get_combined_comment(acceptance_criteria_comment, qa_issue_comment, linked_defect_comment):
     comments = [comment for comment in [acceptance_criteria_comment, qa_issue_comment, linked_defect_comment] if comment]
-    return ". ".join(f"{i+1}# {comment}" for i, comment in enumerate(comments)) if comments else "No issues"
+    if not comments:
+        return "No issues"
+    
+    # Add numbering dynamically
+    return ". ".join(f"{i+1}# {comment}" for i, comment in enumerate(comments))
+
+# Get the combined comment using the function
+combined_comment = get_combined_comment(
+    acceptance_criteria_comment=acceptance_criteria_comment,
+    qa_issue_comment=qa_issue_comment,
+    linked_defect_comment=linked_defect_comment
+)
+
+# Check if there are issues based on the combined comment
+if combined_comment != "No issues":
+    records_with_issues += 1  # Increment the counter for records with issues

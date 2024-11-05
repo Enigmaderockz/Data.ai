@@ -3188,3 +3188,9 @@ body {
         color: black;
         transition: background-color 0.3s, color 0.3s;
     }
+
+
+
+def get_combined_comment(acceptance_criteria_comment, qa_issue_comment, linked_defect_comment):
+    comments = [comment for comment in [acceptance_criteria_comment, qa_issue_comment, linked_defect_comment] if comment]
+    return ". ".join(f"{i+1}# {comment}" for i, comment in enumerate(comments)) if comments else "No issues"

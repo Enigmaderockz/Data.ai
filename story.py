@@ -3208,3 +3208,6 @@ combined_comment = get_combined_comment(
 # Check if there are issues based on the combined comment
 if combined_comment != "No issues":
     records_with_issues += 1  # Increment the counter for records with issues
+
+
+combined_comment = "<span style='color:green;'>No issues</span>"

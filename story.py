@@ -3193,7 +3193,7 @@ body {
 def get_combined_comment(acceptance_criteria_comment, qa_issue_comment, linked_defect_comment):
     comments = [comment for comment in [acceptance_criteria_comment, qa_issue_comment, linked_defect_comment] if comment]
     if not comments:
-        return "No issues"
+        return "<span style='color: green;'>No issues</span>"
     
     # Add numbering dynamically
     return ". ".join(f"{i+1}# {comment}" for i, comment in enumerate(comments))

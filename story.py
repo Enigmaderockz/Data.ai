@@ -3211,3 +3211,13 @@ if combined_comment != "No issues":
 
 
 combined_comment = "<span style='color:green;'>No issues</span>"
+
+
+issue_key_link = (
+    f'<a href="{jira_url}/browse/{issue["key"]}" target="_blank" '
+    f'style="color: #1E90FF; text-decoration: none;" '
+    f'onclick="this.style.color=\'#9370DB\';" '
+    f'onfocus="this.style.color=\'#9370DB\';">'
+    f'{html.escape(issue["key"])}'
+    f'</a>'
+)

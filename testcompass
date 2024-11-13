@@ -1,0 +1,41 @@
+Problem statement
+
+Agile teams often struggle to identify which stories are more likely to be high-risk and important within a sprint based on limited information
+Are developers considering all the scenarios while doing development?
+Are BA’s providing enough acceptance criteria in the stories?
+Is QA coverage good to make sure of no prod defect leakage?
+These problems sound simple but often lead to 
+Late requirement changes
+Prod defect leakage.
+Miscommunication between team members or teams
+
+
+Solution:
+
+Test Compass is an intelligent, AI-powered tool designed to help teams identify high-risk/ important user stories before/ during a sprint
+Analyzes story summaries and descriptions to extract key information like application names, table names, and features
+Cross-references this data with historical data such as related Stories, Production/ QA defects & Test cases executed to assess the risk of each story
+Lists down all the details for each story such as related stories tested, Prod/ QA defects raised, test cases executed in the past
+
+Why innovative
+
+AI-Powered analysis
+Decision Making based on historic parameters:
+
+Prod defects
+QA defects
+Test cases executed
+Dashboard for the visualization
+Dynamic & Adaptive
+
+
+Benefits
+
+More relevant story points can be provided based on the data.
+Improve communication among team members 
+Minimizes chances of prod defects
+Helps in providing more insights to the new stories
+Improves sprint outcomes, reduces risks, and maximizes resource efficiency
+
+
+

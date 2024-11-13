@@ -3221,3 +3221,37 @@ issue_key_link = (
     f'{html.escape(issue["key"])}'
     f'</a>'
 )
+
+
+
+{
+    "target_file": "file2.csv",
+    "mappings": {
+        "collateral": {
+            "target_column": "collateral",
+            "source_file": "file1.csv",
+            "source_columns": ["amount", "req"],
+            "operation": "sum"
+        },
+        "loan": {
+            "target_column": "loan",
+            "source_file": "file1.csv",
+            "source_columns": ["loan"]
+        },
+        "zyx": {
+            "target_column": "zyx",
+            "source": "constant",
+            "value": ""
+        },
+        "fbc": {
+            "target_column": "fbc",
+            "source": "constant",
+            "value": ""
+        },
+        "sads": {
+            "target_column": "sads",
+            "source": "constant",
+            "value": ""
+        }
+    }
+}

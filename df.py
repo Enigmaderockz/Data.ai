@@ -133,3 +133,121 @@ def dataframe_compare(df1, df2, diff_file, columnsort):
 # df1 = pd.read_csv("file1.csv")
 # df2 = pd.read_csv("file2.csv")
 # dataframe_compare(df1, df2, "differences.csv", "id_column")
+
+
+
+############################################################## 2 ################################################################################################3
+
+
+
+import pandas as pd
+import numpy as np
+import datetime
+from colorama import Fore, Style
+import itertools
+
+def compare_empty_dataframes(df1, df2):
+    """Check if both DataFrames are empty and have the same columns."""
+    return df1.empty and df2.empty and df1.columns.equals(df2.columns)
+
+
+def preprocess_dataframe(df, columnsort=None):
+    """Clean and prepare DataFrame for comparison."""
+    df = df.copy()  # Avoid modifying original DataFrame
+    df.columns = df.columns.str.strip()  # Clean column names
+    df.fillna("", inplace=True)  # Replace NaN with empty strings
+
+    if columnsort:
+        try:
+            df.sort_values(by=columnsort, inplace=True)
+        except KeyError:
+            print(Fore.RED + f"Column '{columnsort}' not found for sorting." + Style.RESET_ALL)
+    df.sort_index(axis=1, inplace=True)  # Sort columns alphabetically
+    df.reset_index(drop=True, inplace=True)  # Reset index for consistent comparison
+    return df
+
+
+def save_and_preview_diff(diff_df, diff_file):
+    """Save the differences to a file and print a preview."""
+    try:
+        diff_df.to_csv(diff_file, index=False, sep="|")
+    except Exception as e:
+        print(Fore.RED + f"Error saving diff file: {e}" + Style.RESET_ALL)
+        return False
+
+    print(Fore.GREEN + f"Total differences: {len(diff_df)}" + Style.RESET_ALL)
+    print(Fore.RED + "\nSample differences (first 10 lines):" + Style.RESET_ALL)
+    try:
+        with open(diff_file, "r") as f:
+            for line in itertools.islice(f, 10):
+                print(line.strip())
+    except Exception as e:
+        print(Fore.RED + f"Error reading diff file: {e}" + Style.RESET_ALL)
+    return True
+
+
+def dataframe_compare(df1, df2, diff_file, columnsort):
+    """Compare two dataframes and output differences."""
+    if compare_empty_dataframes(df1, df2):
+        return True, 0
+
+    if len(df1.index) != len(df2.index) or len(df1.columns) != len(df2.columns):
+        print(
+            Fore.RED
+            + f"DataFrames are not identical: Rows (df1={len(df1)}, df2={len(df2)}), "
+            f"Columns (df1={len(df1.columns)}, df2={len(df2.columns)})"
+            + Style.RESET_ALL
+        )
+        return False, 0
+
+    # Preprocess DataFrames
+    df1 = preprocess_dataframe(df1, columnsort)
+    df2 = preprocess_dataframe(df2, columnsort)
+
+    # Chunk processing for memory efficiency
+    chunksize = 100000
+    diff_chunks = []
+
+    for start_idx in range(0, len(df1), chunksize):
+        end_idx = min(start_idx + chunksize, len(df1))
+        chunk1 = df1.iloc[start_idx:end_idx].copy()
+        chunk2 = df2.iloc[start_idx:end_idx].copy()
+
+        chunk1["Row#"] = range(start_idx + 1, end_idx + 1)
+        chunk2["Row#"] = range(start_idx + 1, end_idx + 1)
+        chunk1["Files"] = "src_df"
+        chunk2["Files"] = "db_df"
+
+        # Compare chunks
+        common_columns = chunk1.columns.intersection(chunk2.columns).difference(["Row#", "Files"])
+        chunk_diff = chunk1[common_columns].ne(chunk2[common_columns])
+        none_comparison = (chunk1[common_columns].isnull()) & (chunk2[common_columns].isnull())
+        chunk_diff = chunk_diff[~none_comparison]
+
+        any_diff = chunk_diff.any(axis=1)
+
+        chunk1["Columns_diff"] = chunk_diff.apply(
+            lambda row: ", ".join(row.index[row]), axis=1
+        )
+        chunk2["Columns_diff"] = chunk_diff.apply(
+            lambda row: ", ".join(row.index[row]), axis=1
+        )
+
+        diff_chunks.append(pd.concat([chunk1[any_diff], chunk2[any_diff]], ignore_index=True))
+
+    if diff_chunks:
+        df_diff_sorted = pd.concat(diff_chunks, ignore_index=True)
+        df_diff_sorted.sort_values(by=["Row#", "Files"], inplace=True)
+        df_diff_sorted.reset_index(drop=True, inplace=True)
+
+        if save_and_preview_diff(df_diff_sorted, diff_file):
+            return False, set(df_diff_sorted["Columns_diff"])
+    else:
+        print(Fore.GREEN + "No differences found." + Style.RESET_ALL)
+        return True, 0
+
+
+# Example usage:
+# df1 = pd.read_csv("file1.csv")
+# df2 = pd.read_csv("file2.csv")
+# dataframe_compare(df1, df2, "differences.csv", "id_column")

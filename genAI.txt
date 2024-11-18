@@ -1,3 +1,6 @@
+Automate the removal of redundant multi-pack loans by identifying and deduplicating entries with the same Client and FA name combination, minimizing manual effort and ensuring accurate reporting.
+
+
 Idea Pitch
 Imagine a ChatGPT that doesn’t just answer your questions but actively runs utilities for you on command—fetching tools, executing scripts, and delivering results without needing technical setup or complex commands. Introducing PromptExec AI: an AI-powered operational assistant that connects to a centralized code repository, interprets your prompt, selects the right utility, executes it, and gives you instant feedback.
 

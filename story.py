@@ -1,3 +1,10 @@
+
+import subprocess
+
+def count_lines_fast(file_path):
+    result = subprocess.run(['wc', '-l', file_path], stdout=subprocess.PIPE, text=True)
+    return int(result.stdout.split()[0])
+    
 import requests
 from requests_kerberos import HTTPKerberosAuth, REQUIRED
 import concurrent.futures

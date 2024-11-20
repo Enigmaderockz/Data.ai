@@ -3273,3 +3273,8 @@ Our solution is an Automated Test Data Generator—a utility that can:
 Generate synthetic test data quickly and accurately across different formats and use cases.
 Mock or modify existing data in files to create variations needed for comprehensive testing, helping testers simulate real-world conditions without exposing actual production data.
 Integrate easily with existing workflows, enabling seamless data generation and modification without requiring testers to write code or manually adjust datasets.
+
+
+if filename.startswith("RERISK"):
+        date_str = filename.split('_')[1][:8]
+        print(f"{date_str[4:]}-{date_str[:2]}-{date_str[2:4]}")

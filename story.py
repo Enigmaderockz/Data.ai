@@ -3278,3 +3278,89 @@ Integrate easily with existing workflows, enabling seamless data generation and 
 if filename.startswith("RERISK"):
         date_str = filename.split('_')[1][:8]
         print(f"{date_str[4:]}-{date_str[:2]}-{date_str[2:4]}")
+
+
+
+#######################333 pi scan
+
+import re
+from tqdm import tqdm
+import spacy
+
+# Load the spaCy model for named entity recognition
+nlp = spacy.load('en_core_web_sm')
+
+# Compile all phone number regex patterns into one list for more efficient use
+phone_regexes = [
+    re.compile(r'\(\d{3}\) \d{3}-\d{4}'),
+    re.compile(r'\d{3}-\d{3}-\d{4}'),
+    re.compile(r'\+\d{1,2} \d{3} \d{3} \d{4}'),
+    re.compile(r'\d{5}-\d{5}'),
+    re.compile(r'011-\d{10}'),
+    re.compile(r'\+\d{2} \d{5} \d{5}'),
+    re.compile(r'\+\d{2} \d{2} \d{10}'),
+    re.compile(r'\d{3} \d{3} \d{4}'),
+    re.compile(r'\+\d{2} \d{3} \d{8}'),
+    re.compile(r'\+\d{2} \d{10}')
+]
+
+# name_regex = re.compile(r'\b([A-Z][a-z]+(?: [A-Z][a-z]+)*|[A-Z]+(?: [A-Z]+)*)\b')
+
+# Email regex pattern
+email_regex = re.compile(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b')
+
+def find_matches(line, regex_list):
+    """Find all matches in a line for a list of regex patterns."""
+    return [match for regex in regex_list for match in regex.findall(line)]
+
+def scan_file(file_path):
+    try:
+        with open(file_path, 'r', encoding='utf-8') as file:
+            content = file.read()
+            lines = content.splitlines()
+
+            # Scan for phone numbers
+            print("Scanning for phone numbers...")
+            phone_matches = []
+            for line in tqdm(lines, desc="Progress", unit="lines", bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt}"):
+                phone_matches.extend(find_matches(line, phone_regexes))
+            print(f"Found {len(phone_matches)} phone numbers.")
+
+            # Scan for emails
+            print("\nScanning for emails...")
+            email_matches = []
+            for line in tqdm(lines, desc="Progress", unit="lines", bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt}"):
+                email_matches.extend(email_regex.findall(line))
+            print(f"Found {len(email_matches)} email addresses.")
+
+            # Scan for names
+            print("\nScanning for names...")
+            name_matches = set()
+            for line in tqdm(lines, desc="Progress", unit="lines", bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt}"):
+                # Remove email addresses from the line to avoid false positives
+                line = email_regex.sub('', line)
+
+                # Use both regex and spaCy for better coverage
+                #name_matches.update(name_regex.findall(line))
+               
+                doc = nlp(line)
+                for entity in doc.ents:
+                    if entity.label_ == 'PERSON':
+                        name_matches.add(entity.text)
+            print(f"Found {len(name_matches)} names.")
+
+            # Output results
+            print("\nPII Values:")
+            for category, matches in [("Phone Numbers", phone_matches), ("Emails", email_matches), ("Names", name_matches)]:
+                print(f"\n{category} with PII values:")
+                print(f"Count: {len(matches)}")
+                for match in matches:
+                    print(match)
+
+    except FileNotFoundError:
+        print("File not found.")
+    except UnicodeDecodeError:
+        print("Error decoding file. Ensure the file is in UTF-8 encoding.")
+
+# Example usage
+scan_file('pii.log')

@@ -116,12 +116,33 @@ diff_df.show(truncate=False)
 
 def clean_column(col):
     return (
-        F.when(F.col(col).rlike(r"^0E-.*$"), "0")  # Handle cases like "0E-11" → "0"
+        F.when(F.col(col).rlike(r"^0E-.*$"), "0")  # Convert scientific notation like "0E-11" to "0"
         .when(F.col(col).rlike(r"^-?\d+\.\d+$"),  # Match decimal strings
-              F.regexp_replace(F.col(col), r"(\.\d*?[1-9])0+$", r"\1")  # Remove trailing zeroes
-              .cast("string")
+              F.regexp_replace(F.col(col), r"(\.\d*?[1-9])0+$", r"\1")  # Remove trailing zeros
               .alias(col))
         .when(F.col(col).rlike(r"^-?\d+\.0+$"),  # Match strings like "45.00000"
               F.regexp_replace(F.col(col), r"\.0+$", "").alias(col))  # Remove ".0"
-        .otherwise(F.col(col))  # Leave other strings as-is
-    )
+        .otherwise(F.col(col))  # Keep everything else as-is
+
+
+# Function to clean a column
+def clean_column(col):
+    return (
+        F.when(F.col(col).rlike(r"^-?0E-"), "0")  # Convert scientific notation like 0E-11 to "0"
+        .when(F.col(col).rlike(r"^-?\d+\.\d+$"),  # If it's a decimal number
+              F.expr(f"cast(cast({col} as double) as string)")  # Cast to double to remove trailing zeroes
+        )
+        .otherwise(F.col(col))  # For non-matching rows, retain the original value
+    ).alias(col)
+
+
+
+
+def clean_column(col):
+    return (
+        F.when(F.col(col).rlike(r"^-?0E-"), "0")  # Handle scientific notation like "0E-11" → "0"
+        .when(F.col(col).rlike(r"^-?\d+\.\d+$"),  # If it's a decimal number in string form
+              F.expr(f"trim(trailing '0' from trim(trailing '.' from {col}))")  # Remove trailing zeroes
+        )
+        .otherwise(F.col(col))  # Keep original value if no transformation needed
+    ).alias(col)

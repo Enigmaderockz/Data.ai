@@ -146,6 +146,68 @@ else:
         diff_values_df = src_df.select("id", column).join(db_df.select("id", column), on="id", how="outer") \
             .withColumnRenamed(f"{column}_left", f"{column}_src") \
             .withColumnRenamed(f"{column}_right", f"{column}_db") \
+
             .filter(col(f"{column}_src") != col(f"{column}_db"))
 
         diff_values_df.show()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+from pyspark.sql.functions import col
+
+# Find common columns between src_df and db_df
+common_cols = list(set(src_df.columns) & set(db_df.columns))
+
+# Only proceed with the comparison on common columns
+if common_cols:
+    # Find the differences between the two dataframes for common columns
+    diff_df = src_df.select(*common_cols).subtract(db_df.select(*common_cols)).union(db_df.select(*common_cols).subtract(src_df.select(*common_cols)))
+
+    if diff_df.count() == 0:
+        print("No differences found between the DataFrames for common columns.")
+    else:
+        diff_cols = []
+        
+        for col_name in common_cols:
+            src_col = src_df.select(col_name).distinct()
+            db_col = db_df.select(col_name).distinct()
+            if src_col.subtract(db_col).union(db_col.subtract(src_col)).count() > 0:
+                diff_cols.append(col_name)
+        
+        if diff_cols:
+            print(f"Columns with differences: {', '.join(diff_cols)}")
+            
+            # Now, show the differences for those columns
+            src_values = src_df.select(*[col(c) for c in diff_cols]).distinct().collect()
+            db_values = db_df.select(*[col(c) for c in diff_cols]).distinct().collect()
+            
+            print("\nDifferences in values:")
+            print(f"{'DataFrames':<10}{', '.join(diff_cols)}")
+            print(f"{'src_df':<10}{', '.join(str(row.asDict()) for row in src_values)}")
+            print(f"{'db_df':<10}{', '.join(str(row.asDict()) for row in db_values)}")
+        else:
+            print("No differences found in common columns.")
+else:
+    print("No common columns between the DataFrames to compare.")

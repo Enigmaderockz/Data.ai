@@ -115,8 +115,13 @@ diff_df.show(truncate=False)
 
 
 def clean_column(col):
-    return F.when(F.col(col).rlike(r"^OE-"), "0").otherwise(  # Replace "OE-*" patterns with "0"
-        F.regexp_replace(
-            F.col(col), r"(\.\d*?[1-9])0+$", r"\1"  # Remove trailing zeroes after decimals
-        )
-    ).alias(col)
+    return (
+        F.when(F.col(col).rlike(r"^0E-.*$"), "0")  # Handle cases like "0E-11" → "0"
+        .when(F.col(col).rlike(r"^-?\d+\.\d+$"),  # Match decimal strings
+              F.regexp_replace(F.col(col), r"(\.\d*?[1-9])0+$", r"\1")  # Remove trailing zeroes
+              .cast("string")
+              .alias(col))
+        .when(F.col(col).rlike(r"^-?\d+\.0+$"),  # Match strings like "45.00000"
+              F.regexp_replace(F.col(col), r"\.0+$", "").alias(col))  # Remove ".0"
+        .otherwise(F.col(col))  # Leave other strings as-is
+    )

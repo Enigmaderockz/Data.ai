@@ -69,80 +69,83 @@ scan_file('pii.log')
 
 
 
+from pyspark.sql.functions import col
+
+# Assuming src_df and db_df are your DataFrames with the same schema
+
+# First, find the differences between the two dataframes
+diff_df = src_df.subtract(db_df).union(db_df.subtract(src_df))
+
+# If there's no difference, the count will be 0
+if diff_df.count() == 0:
+    print("No differences found between the DataFrames.")
+else:
+    # Find columns with differences
+    columns = src_df.columns
+    diff_cols = []
+    
+    for col_name in columns:
+        src_col = src_df.select(col_name).distinct()
+        db_col = db_df.select(col_name).distinct()
+        if src_col.subtract(db_col).union(db_col.subtract(src_col)).count() > 0:
+            diff_cols.append(col_name)
+    
+    print(f"Columns with differences: {', '.join(diff_cols)}")
+    
+    # Now, show the differences for those columns
+    if diff_cols:
+        src_values = src_df.select(*[col(c) for c in diff_cols]).distinct().collect()
+        db_values = db_df.select(*[col(c) for c in diff_cols]).distinct().collect()
+        
+        print("\nDifferences in values:")
+        print(f"{'DataFrames':<10}{', '.join(diff_cols)}")
+        print(f"{'src_df':<10}{', '.join(str(row.asDict()) for row in src_values)}")
+        print(f"{'db_df':<10}{', '.join(str(row.asDict()) for row in db_values)}")
+
+
+#############################################3 perplexity AI
+
+
 from pyspark.sql import SparkSession
-from pyspark.sql import functions as F
+from pyspark.sql.functions import col
 
-# Create a Spark session
-spark = SparkSession.builder.appName("RemoveTrailingZeroes").getOrCreate()
+# Initialize Spark session
+spark = SparkSession.builder.appName("DataFrameComparison").getOrCreate()
 
-# Example data
-src_data = [
-    ("165216.2441", "154085.9806", "0.0", "4567.0000", "45.00000"),
-    ("123.4500", "678.9000", "0.0000", "0.0", "0.00000"),
-]
+# Sample DataFrames (replace these with your actual DataFrames)
+src_data = [(1, "val1", "val2"), (2, "val2", "val3")]
+db_data = [(1, "val1", "val2"), (2, "val3", "val3")]
 
-db_data = [
-    ("165216.24410000000", "154085.98060000000", "OE-11", "4567.0000", "45.00000"),
-    ("123.4500000000", "678.9000000000", "OE-11", "0.0", "0.00000"),
-]
+src_df = spark.createDataFrame(src_data, ["id", "col1", "col2"])
+db_df = spark.createDataFrame(db_data, ["id", "col1", "col2"])
 
-# Create DataFrames
-src_df = spark.createDataFrame(src_data, ["col1", "col2", "col3", "col4", "col5"])
-db_df = spark.createDataFrame(db_data, ["col1", "col2", "col3", "col4", "col5"])
+# Identify differences
+diff_df = src_df.subtract(db_df).union(db_df.subtract(src_df))
 
-# Function to clean columns
-# Function to clean columns
-def clean_column(col):
-    return F.when(
-        F.col(col).rlike(r"^\d+(\.\d+)?$"),  # Only process numeric-like values
-        F.regexp_replace(
-            F.regexp_replace(F.col(col), r"(\.\d*?[1-9])0+$", r"\1"),  # Remove trailing zeroes
-            r"(\.0+)$", ""  # Remove trailing ".0" entirely
-        )
-    ).otherwise(F.lit("0")).alias(col)  # Replace non-numeric values (e.g., "OE-11") with "0"
+if diff_df.count() == 0:
+    print("No differences found.")
+else:
+    # Identify columns with differences
+    diff_columns = []
+    
+    for column in src_df.columns:
+        # Create a temporary DataFrame for each column to check for differences
+        temp_diff_df = src_df.select("id", column).join(db_df.select("id", column), on="id", how="outer")
+        
+        # Check if there are any differences in the current column
+        if temp_diff_df.filter(col(f"{column}_left") != col(f"{column}_right")).count() > 0:
+            diff_columns.append(column)
 
-# Clean all columns in both DataFrames
-columns = src_df.columns
-for col in columns:
-    src_df = src_df.withColumn(col, clean_column(col))
-    db_df = db_df.withColumn(col, clean_column(col))
+    print(f"Columns with differences: {', '.join(diff_columns)}")
 
-# Perform the comparison
-diff_df = (src_df.subtract(db_df)).unionAll(db_df.subtract(src_df))
+    # Show differences between the two DataFrames
+    for column in diff_columns:
+        print(f"Differences in column '{column}':")
+        
+        # Create a DataFrame showing the differing values from both DataFrames
+        diff_values_df = src_df.select("id", column).join(db_df.select("id", column), on="id", how="outer") \
+            .withColumnRenamed(f"{column}_left", f"{column}_src") \
+            .withColumnRenamed(f"{column}_right", f"{column}_db") \
+            .filter(col(f"{column}_src") != col(f"{column}_db"))
 
-# Show the differences
-diff_df.show(truncate=False)
-
-
-def clean_column(col):
-    return (
-        F.when(F.col(col).rlike(r"^0E-.*$"), "0")  # Convert scientific notation like "0E-11" to "0"
-        .when(F.col(col).rlike(r"^-?\d+\.\d+$"),  # Match decimal strings
-              F.regexp_replace(F.col(col), r"(\.\d*?[1-9])0+$", r"\1")  # Remove trailing zeros
-              .alias(col))
-        .when(F.col(col).rlike(r"^-?\d+\.0+$"),  # Match strings like "45.00000"
-              F.regexp_replace(F.col(col), r"\.0+$", "").alias(col))  # Remove ".0"
-        .otherwise(F.col(col))  # Keep everything else as-is
-
-
-# Function to clean a column
-def clean_column(col):
-    return (
-        F.when(F.col(col).rlike(r"^-?0E-"), "0")  # Convert scientific notation like 0E-11 to "0"
-        .when(F.col(col).rlike(r"^-?\d+\.\d+$"),  # If it's a decimal number
-              F.expr(f"cast(cast({col} as double) as string)")  # Cast to double to remove trailing zeroes
-        )
-        .otherwise(F.col(col))  # For non-matching rows, retain the original value
-    ).alias(col)
-
-
-
-
-def clean_column(col):
-    return (
-        F.when(F.col(col).rlike(r"^-?0E-"), "0")  # Handle scientific notation like "0E-11" → "0"
-        .when(F.col(col).rlike(r"^-?\d+\.\d+$"),  # If it's a decimal number in string form
-              F.expr(f"trim(trailing '0' from trim(trailing '.' from {col}))")  # Remove trailing zeroes
-        )
-        .otherwise(F.col(col))  # Keep original value if no transformation needed
-    ).alias(col)
+        diff_values_df.show()

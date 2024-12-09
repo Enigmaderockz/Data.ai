@@ -91,15 +91,15 @@ src_df = spark.createDataFrame(src_data, ["col1", "col2", "col3", "col4", "col5"
 db_df = spark.createDataFrame(db_data, ["col1", "col2", "col3", "col4", "col5"])
 
 # Function to clean columns
+# Function to clean columns
 def clean_column(col):
-    return F.regexp_replace(
+    return F.when(
+        F.col(col).rlike(r"^\d+(\.\d+)?$"),  # Only process numeric-like values
         F.regexp_replace(
-            F.trim(F.col(col).cast(StringType())),  # Ensure the column is cast as a string
-            r"(\.\d*[1-9])0+$",  # Remove trailing zeroes after decimals
-            r"\1"
-        ),
-        r"(\.0+)$", ""  # Remove redundant ".0"
-    ).alias(col)
+            F.regexp_replace(F.col(col), r"(\.\d*?[1-9])0+$", r"\1"),  # Remove trailing zeroes
+            r"(\.0+)$", ""  # Remove trailing ".0" entirely
+        )
+    ).otherwise(F.lit("0")).alias(col)  # Replace non-numeric values (e.g., "OE-11") with "0"
 
 # Clean all columns in both DataFrames
 columns = src_df.columns
@@ -112,3 +112,11 @@ diff_df = (src_df.subtract(db_df)).unionAll(db_df.subtract(src_df))
 
 # Show the differences
 diff_df.show(truncate=False)
+
+
+def clean_column(col):
+    return F.when(F.col(col).rlike(r"^OE-"), "0").otherwise(  # Replace "OE-*" patterns with "0"
+        F.regexp_replace(
+            F.col(col), r"(\.\d*?[1-9])0+$", r"\1"  # Remove trailing zeroes after decimals
+        )
+    ).alias(col)

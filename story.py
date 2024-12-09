@@ -65,3 +65,49 @@ def scan_file(file_path):
 
 # Example usage
 scan_file('pii.log')
+
+
+
+
+from pyspark.sql import SparkSession
+from pyspark.sql import functions as F
+
+# Create a Spark session
+spark = SparkSession.builder.appName("RemoveTrailingZeroes").getOrCreate()
+
+# Example data
+src_data = [
+    ("165216.2441", "154085.9806", "0.0", "4567.0000", "45.00000"),
+    ("123.4500", "678.9000", "0.0000", "0.0", "0.00000"),
+]
+
+db_data = [
+    ("165216.24410000000", "154085.98060000000", "OE-11", "4567.0000", "45.00000"),
+    ("123.4500000000", "678.9000000000", "OE-11", "0.0", "0.00000"),
+]
+
+# Create DataFrames
+src_df = spark.createDataFrame(src_data, ["col1", "col2", "col3", "col4", "col5"])
+db_df = spark.createDataFrame(db_data, ["col1", "col2", "col3", "col4", "col5"])
+
+# Function to clean columns
+def clean_column(col):
+    return F.when(
+        F.col(col).rlike(r"^\d+(\.\d+)?$"),  # Only process numeric-like values
+        F.regexp_replace(
+            F.regexp_replace(F.col(col), r"(\.\d*?[1-9])0+$", r"\1"),  # Remove trailing zeroes
+            r"(\.0+)$", ""  # Remove trailing ".0" entirely
+        )
+    ).otherwise(F.lit("0")).alias(col)  # Replace non-numeric values (e.g., "OE-11") with "0"
+
+# Clean all columns in both DataFrames
+columns = src_df.columns
+for col in columns:
+    src_df = src_df.withColumn(col, clean_column(col))
+    db_df = db_df.withColumn(col, clean_column(col))
+
+# Perform the comparison
+diff_df = (src_df.subtract(db_df)).unionAll(db_df.subtract(src_df))
+
+# Show the differences
+diff_df.show(truncate=False)

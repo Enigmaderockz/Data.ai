@@ -207,6 +207,23 @@ if common_cols:
             print(f"{'DataFrames':<10}{', '.join(diff_cols)}")
             print(f"{'src_df':<10}{', '.join(str(row.asDict()) for row in src_values)}")
             print(f"{'db_df':<10}{', '.join(str(row.asDict()) for row in db_values)}")
+
+
+def calculate_percentage_change(old, new, total_old, total_new, metric):
+    if metric == "Automation" and total_old > 0 and total_new > 0:
+        percentage_old = (old / total_old) * 100
+        percentage_new = (new / total_new) * 100
+        if percentage_old - percentage_new == 0.0:
+            return f"100% {metric} complete"
+    
+    if total_old == 0 and total_new == 0:
+        return f"{metric} remained constant with no change"
+    
+    percentage_old = (old / total_old) * 100 if total_old != 0 else 0
+    percentage_new = (new / total_new) * 100
+    change = percentage_new - percentage_old
+
+    return f"{metric} {'increased' if change > 0 else 'decreased' if change < 0 else 'remains constant'} {'by' if change != 0 else 'at'} {abs(change):.2f}%"
         else:
             print("No differences found in common columns.")
 else:

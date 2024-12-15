@@ -356,3 +356,40 @@ def extract_month_year(date):
 
 # Add 'Month' column to dataframe
 df['Month'] = df['Created'].apply(extract_month_year)
+
+
+
+
+# Squad-level data within the fleet, including handling for NULL Components
+for squad, squad_group in fleet_group.groupby(fleet_group['Components'].fillna("No Component")):
+    min_created = squad_group['Created'].min().strftime('%d-%m-%Y')
+    max_created = squad_group['Created'].max().strftime('%d-%m-%Y')
+    date_range = f"{min_created} to {max_created}"
+
+    # Create CSV for squad-level data by category
+    for category in ['Automated', 'Manual', 'Backlog']:
+        squad_category_group = squad_group[squad_group['Category'] == category]
+        if not squad_category_group.empty:
+            squad_csv_path = os.path.join(
+                output_folder, f"{fleet}_{squad}_{month.replace('-', '')}_{category}_squad.csv"
+            )
+            squad_category_group.to_csv(squad_csv_path, index=False)
+
+    automated = (squad_group['Category'] == 'Automated').sum()
+    manual = (squad_group['Category'] == 'Manual').sum()
+    backlog = (squad_group['Category'] == 'Backlog').sum()
+    total = automated + manual + backlog
+    percent_automated = round((automated / total) * 100, 2) if total > 0 else 0
+
+    squad_details += f"""
+    <tr>
+        <td>{squad}</td>
+        <td>{date_range}</td>
+        <td>{f'<a href="{output_folder}/{fleet}_{squad}_{month.replace("-", "")}_Automated_squad.csv">{automated}</a>' if automated > 0 else 0}</td>
+        <td>{f'<a href="{output_folder}/{fleet}_{squad}_{month.replace("-", "")}_Manual_squad.csv">{manual}</a>' if manual > 0 else 0}</td>
+        <td>{f'<a href="{output_folder}/{fleet}_{squad}_{month.replace("-", "")}_Backlog_squad.csv">{backlog}</a>' if backlog > 0 else 0}</td>
+        <td>{total}</td>
+        <td>{percent_automated}%</td>
+    </tr>
+    """
+

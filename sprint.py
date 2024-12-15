@@ -332,3 +332,25 @@ def process_test_case_data_with_fleet(excel_file_path, output_html_path):
 file_path = 'jira.xlsx'
 output_html_file = 'sprint.html'
 process_test_case_data_with_fleet(file_path, output_html_file)
+
+
+
+
+# Read CSV file
+df = pd.read_csv(csv_file_path)
+
+# Ensure 'Created' column is in datetime format
+df['Created'] = pd.to_datetime(df['Created'], errors='coerce')
+
+# Check for any invalid dates and handle them
+if df['Created'].isnull().any():
+    print("Warning: Some rows in the 'Created' column could not be converted to datetime.")
+    print("These rows will be skipped in processing.")
+    df = df.dropna(subset=['Created'])
+
+# Function to extract month name and year from Created column
+def extract_month_year(date):
+    return date.strftime('%B-%Y')
+
+# Add 'Month' column to dataframe
+df['Month'] = df['Created'].apply(extract_month_year)

@@ -337,7 +337,9 @@ process_test_case_data_with_fleet(file_path, output_html_file)
 
 
 # Read CSV file
-df = pd.read_csv(csv_file_path)
+# Read CSV file with proper handling for commas within quoted fields
+df = pd.read_csv(csv_file_path, quotechar='"', quoting=2, skipinitialspace=True, encoding='utf-8')
+
 
 # Ensure 'Created' column is in datetime format
 df['Created'] = pd.to_datetime(df['Created'], errors='coerce')

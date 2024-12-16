@@ -234,174 +234,6 @@ else:
 
 ###################################1
 
-import pandas as pd
-from sklearn.linear_model import LinearRegression
-import numpy as np
-import statistics
-
-def detect_trends(data):
-    # Calculate overall totals
-    total_automated = data['AUTOMATED'].sum()
-    total_manual = data['MANUAL'].sum()
-    total_backlog = data['BACKLOG'].sum()
-    total_cases = data['TOTAL'].sum()
-    total_percent_automated = round((total_automated / total_cases) * 100, 2) if total_cases > 0 else 0
-
-    # Calculate summary statistics
-    summary_stats = {
-        'Automated': {
-            'Total': total_automated,
-            'Average Monthly': round(data['AUTOMATED'].mean(), 2),
-            'Median': int(data['AUTOMATED'].median()),
-            'Std Dev': round(data['AUTOMATED'].std(), 2)
-        },
-        'Manual': {
-            'Total': total_manual,
-            'Average Monthly': round(data['MANUAL'].mean(), 2),
-            'Median': int(data['MANUAL'].median()),
-            'Std Dev': round(data['MANUAL'].std(), 2)
-        },
-        'Backlog': {
-            'Total': total_backlog,
-            'Average Monthly': round(data['BACKLOG'].mean(), 2),
-            'Median': int(data['BACKLOG'].median()),
-            'Std Dev': round(data['BACKLOG'].std(), 2)
-        },
-        'Overall': {
-            'Total TCs': total_cases,
-            'Overall Automated Percentage': f"{total_percent_automated}%"
-        }
-    }
-
-    # Start constructing HTML
-    trends_html = f"""
-    <h2>Overall Summary</h2>
-    <table border="1" cellspacing="0" cellpadding="5">
-        <tr>
-            <th>Category</th>
-            <th>Total TCs</th>
-            <th>Average Monthly</th>
-            <th>Median</th>
-            <th>Std Dev</th>
-        </tr>
-        <tr>
-            <td>Automated</td>
-            <td>{summary_stats['Automated']['Total']}</td>
-            <td>{summary_stats['Automated']['Average Monthly']}</td>
-            <td>{summary_stats['Automated']['Median']}</td>
-            <td>{summary_stats['Automated']['Std Dev']}</td>
-        </tr>
-        <tr>
-            <td>Manual</td>
-            <td>{summary_stats['Manual']['Total']}</td>
-            <td>{summary_stats['Manual']['Average Monthly']}</td>
-            <td>{summary_stats['Manual']['Median']}</td>
-            <td>{summary_stats['Manual']['Std Dev']}</td>
-        </tr>
-        <tr>
-            <td>Backlog</td>
-            <td>{summary_stats['Backlog']['Total']}</td>
-            <td>{summary_stats['Backlog']['Average Monthly']}</td>
-            <td>{summary_stats['Backlog']['Median']}</td>
-            <td>{summary_stats['Backlog']['Std Dev']}</td>
-        </tr>
-        <tr>
-            <td colspan="5"><strong>Overall Automated Percentage: {summary_stats['Overall']['Overall Automated Percentage']}</strong></td>
-        </tr>
-    </table>
-
-    <h2>Data Trends</h2>
-    <ul style="list-style-type: none; padding: 0;">
-    """
-
-    # Function to calculate confidence intervals
-    def confidence_interval(x, y, model, confidence=0.95):
-        predictions = model.predict(x)
-        residuals = y - predictions
-        mean_x = np.mean(x)
-        n = len(x)
-        t_value = 2.306  # Approximate for 95% confidence with df= n-2=6
-        s_err = np.sqrt(np.sum(residuals**2) / (n - 2))
-        conf_int = t_value * s_err / np.sqrt(np.sum((x - mean_x)**2))
-        return conf_int
-
-    # Iterate through each category for trend analysis
-    for category in ['Automated', 'Manual', 'Backlog']:
-        category_data = data[['MONTH', 'CREATED', category]].copy()
-        category_data.rename(columns={category: 'Count'}, inplace=True)
-        category_data['Created'] = pd.to_datetime(category_data['CREATED'].str.split(' to ').str[0], dayfirst=True)
-        category_data['Month_Num'] = category_data['Created'].dt.year * 12 + category_data['Created'].dt.month
-        category_data.sort_values('Month_Num', inplace=True)
-
-        x = category_data['Month_Num'].values.reshape(-1, 1)
-        y = category_data['Count'].values
-
-        if len(x) < 2:
-            continue  # Not enough data points for trend analysis
-
-        model = LinearRegression().fit(x, y)
-        slope = model.coef_[0]
-        r_squared = model.score(x, y)
-        conf_int = confidence_interval(x, y, model)
-
-        trend = "increasing" if slope > 0 else "decreasing"
-        trend_icon = "↑" if slope > 0 else "↓"
-        trend_color = "green" if slope > 0 else "red"
-
-        start_count = y[0]
-        end_count = y[-1]
-        percentage_change = ((end_count - start_count) / start_count) * 100 if start_count != 0 else 0
-
-        # Adding more detailed information
-        trends_html += f"""
-        <li style='margin-bottom: 10px;'>
-            <span style='color: {trend_color}; font-size: 20px;'>{trend_icon}</span>
-            <strong>{category}</strong> is <em>{trend}</em> over time with a slope of {slope:.2f}.
-            <br>
-            <strong>Trend Details:</strong>
-            <ul>
-                <li>Starting count (earliest month): {start_count}</li>
-                <li>Ending count (latest month): {end_count}</li>
-                <li>Percentage change: {percentage_change:.2f}%</li>
-                <li>R-squared: {r_squared:.2f}</li>
-                <li>95% Confidence Interval for Slope: [{slope - conf_int:.2f}, {slope + conf_int:.2f}]</li>
-            </ul>
-        </li>
-        """
-
-    trends_html += "</ul>"
-
-    # Adding Monthly Breakdown Table
-    trends_html += """
-    <h2>Monthly Breakdown</h2>
-    <table border="1" cellspacing="0" cellpadding="5">
-        <tr>
-            <th>Month</th>
-            <th>Automated</th>
-            <th>Manual</th>
-            <th>Backlog</th>
-            <th>Total</th>
-            <th>% Automated</th>
-        </tr>
-    """
-    for index, row in data.iterrows():
-        trends_html += f"""
-        <tr>
-            <td>{row['MONTH']}</td>
-            <td>{row['AUTOMATED']}</td>
-            <td>{row['MANUAL']}</td>
-            <td>{row['BACKLOG']}</td>
-            <td>{row['TOTAL']}</td>
-            <td>{row['% AUTOMATED']}</td>
-        </tr>
-        """
-    trends_html += "</table>"
-
-    return trends_html
-
-
-###############################33 2
-
 from sklearn.linear_model import LinearRegression
 
 def detect_trends(data):
@@ -429,15 +261,14 @@ def detect_trends(data):
             x = category_data['Month_Num'].values.reshape(-1, 1)
             y = category_data['Count'].values
 
+            # Fit the trend line
             model = LinearRegression().fit(x, y)
-            trend = "increasing" if model.coef_[0] > 0 else "decreasing"
-            trend_icon = "↑" if trend == "increasing" else "↓"
+            slope = model.coef_[0]
+            trend = "increasing" if slope > 0 else "decreasing"
+            trend_icon = "↑" if slope > 0 else "↓"
 
             # Determine trend color
-            if category == 'Automated':
-                trend_color = "green" if trend == "increasing" else "red"
-            else:
-                trend_color = "green" if trend == "decreasing" else "red"
+            trend_color = "green" if slope > 0 else "red"
 
             # Metrics
             start_count = y[0]
@@ -452,11 +283,21 @@ def detect_trends(data):
             first_month = category_data['Created'].min().strftime('%B-%Y')
             last_month = category_data['Created'].max().strftime('%B-%Y')
 
+            # Correct logic for trend message
+            if start_count < end_count:
+                trend = "increasing"
+                trend_icon = "↑"
+                trend_color = "green"
+            elif start_count > end_count:
+                trend = "decreasing"
+                trend_icon = "↓"
+                trend_color = "red"
+
             trends_html += f"""
             <li style='color: {trend_color};'>
             {trend_icon} <b>{category}</b> is {trend} over time.
             <ul>
-                <li><b>Slope:</b> {model.coef_[0]:.2f}</li>
+                <li><b>Slope:</b> {slope:.2f}</li>
                 <li><b>Starting Count:</b> {start_count}, <b>Ending Count:</b> {end_count}</li>
                 <li><b>Absolute Change:</b> {abs_change}, <b>Percentage Change:</b> {percentage_change:.2f}%</li>
                 <li><b>Max Count:</b> {max_count}, <b>Min Count:</b> {min_count}, <b>Average Count:</b> {avg_count:.2f}</li>

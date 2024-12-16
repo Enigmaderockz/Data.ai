@@ -290,6 +290,22 @@ def detect_trends(data):
                 trend_icon = "→"
                 trend_color = "gray"
 
+
+    month_details = ""
+
+    # Sort dataframe chronologically by month
+    # Convert 'Month' column to proper datetime and sort it
+    # Extract Month-Year in 'Month' column and sort by actual date
+    df['Month'] = pd.to_datetime(df['Created']).dt.strftime('%B-%Y')
+
+    # Create a helper column for chronological sorting
+    df['Sort_Month'] = pd.to_datetime(df['Month'], format='%B-%Y')
+
+    # Sort the dataframe by the 'Sort_Month' column (earliest month first)
+    df = df.sort_values(by='Sort_Month').drop(columns='Sort_Month')
+
+    for month, month_group in df.groupby('Month'):
+
             # Add to trends
             trends_html += f"""
             <li style='color: {trend_color};'>

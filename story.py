@@ -264,13 +264,6 @@ def detect_trends(data):
             # Fit the trend line
             model = LinearRegression().fit(x, y)
             slope = model.coef_[0]
-            trend = "increasing" if slope > 0 else "decreasing"
-            trend_icon = "↑" if slope > 0 else "↓"
-
-            # Determine trend color
-            trend_color = "green" if slope > 0 else "red"
-
-            # Metrics
             start_count = y[0]
             end_count = y[-1]
             percentage_change = ((end_count - start_count) / start_count) * 100 if start_count != 0 else 0
@@ -283,16 +276,21 @@ def detect_trends(data):
             first_month = category_data['Created'].min().strftime('%B-%Y')
             last_month = category_data['Created'].max().strftime('%B-%Y')
 
-            # Correct logic for trend message
+            # Determine trend direction and color
             if start_count < end_count:
                 trend = "increasing"
                 trend_icon = "↑"
-                trend_color = "green"
+                trend_color = "red" if category in ['Manual', 'Backlog'] else "green"
             elif start_count > end_count:
                 trend = "decreasing"
                 trend_icon = "↓"
-                trend_color = "red"
+                trend_color = "green" if category in ['Manual', 'Backlog'] else "red"
+            else:
+                trend = "stable"
+                trend_icon = "→"
+                trend_color = "gray"
 
+            # Add to trends
             trends_html += f"""
             <li style='color: {trend_color};'>
             {trend_icon} <b>{category}</b> is {trend} over time.

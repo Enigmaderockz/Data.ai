@@ -48,8 +48,12 @@ def detect_trends(data):
             slope = model.coef_[0]
             start_count = y[0]
             end_count = y[-1]
-            abs_change = end_count - start_count
-            percentage_change = ((end_count - start_count) / start_count) * 100 if start_count != 0 else 0
+            abs_change = int(end_count - start_count)
+            percentage_change = int(round((end_count - start_count) / start_count * 100, 0)) if start_count != 0 else 0
+
+            # Date range
+            first_month = filled_data['YearMonth'].min().strftime('%B-%Y')
+            last_month = filled_data['YearMonth'].max().strftime('%B-%Y')
 
             # Trend direction and color
             if category == 'Automated':
@@ -67,8 +71,9 @@ def detect_trends(data):
                     <b>Starting Count:</b> {start_count} <br>
                     <b>Ending Count:</b> {end_count} <br>
                     <b>Absolute Change:</b> {abs_change} <br>
-                    <b>Percentage Change:</b> {percentage_change:.2f}% <br>
-                    <b>Slope of Trend:</b> {slope:.2f}
+                    <b>Percentage Change:</b> {percentage_change}% <br>
+                    <b>Slope of Trend:</b> {slope:.2f} <br>
+                    <b>Date Range:</b> {first_month} to {last_month}
                 </p>
             </li>
             """
@@ -87,8 +92,8 @@ def detect_trends(data):
                     month = row['YearMonth'].strftime('%B-%Y')
                     prev_count = int(row['Prev_Count'])
                     current_count = int(row['Count'])
-                    change = row['Change']
-                    percent_change = row['Percent_Change']
+                    change = int(row['Change'])
+                    percent_change = round(row['Percent_Change'])
 
                     # Color logic for jumps
                     if category == 'Automated':
@@ -101,7 +106,7 @@ def detect_trends(data):
                     trends_html += f"""
                     <li style='color: {color};'>
                         In <b>{month}</b>, the count {direction} from <b>{prev_count}</b> to <b>{current_count}</b>, 
-                        leading to a change of <b>{change} ({percent_change:.2f}%)</b>.
+                        leading to a change of <b>{change} ({percent_change}%)</b>.
                     </li>
                     """
 

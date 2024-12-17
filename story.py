@@ -17,30 +17,32 @@ def detect_trends(data):
     <ul class='trends-list'>
     """
 
-    # Helper function to fill missing months
+    # Helper function to fill missing months and calculate counts
     def fill_missing_months(df):
-        df['Created'] = pd.to_datetime(df['Created'])
-        df = df.set_index('Created')
+        # Extract Year-Month as a datetime key
+        df['YearMonth'] = df['Created'].dt.to_period('M').dt.to_timestamp()
 
-        # Generate continuous month range
-        all_months = pd.date_range(df.index.min(), df.index.max(), freq='MS')
-        df_resampled = df.resample('MS').size().reindex(all_months, fill_value=0)
+        # Group data by YearMonth to count occurrences
+        grouped = df.groupby('YearMonth').size().reset_index(name='Count')
 
-        # Return filled DataFrame
-        df_filled = pd.DataFrame({
-            'Created': df_resampled.index,
-            'Count': df_resampled.values
-        })
-        return df_filled
+        # Generate full date range
+        full_range = pd.date_range(grouped['YearMonth'].min(), grouped['YearMonth'].max(), freq='MS')
+        full_df = pd.DataFrame({'YearMonth': full_range})
+
+        # Merge the grouped counts with the full date range, fill missing values with 0
+        merged = full_df.merge(grouped, on='YearMonth', how='left').fillna(0)
+        merged['Count'] = merged['Count'].astype(int)
+
+        return merged
 
     for category in ['Automated', 'Manual', 'Backlog']:
         category_data = data[data['Category'] == category]
         if not category_data.empty:
             # Fill missing months
             filled_data = fill_missing_months(category_data)
-            filled_data['Month_Num'] = filled_data['Created'].dt.month + filled_data['Created'].dt.year * 12
 
             # Linear regression
+            filled_data['Month_Num'] = filled_data['YearMonth'].dt.month + filled_data['YearMonth'].dt.year * 12
             x = filled_data['Month_Num'].values.reshape(-1, 1)
             y = filled_data['Count'].values
 
@@ -55,8 +57,8 @@ def detect_trends(data):
             avg_count = np.mean(y)
 
             # Time range
-            first_month = filled_data['Created'].min().strftime('%B-%Y')
-            last_month = filled_data['Created'].max().strftime('%B-%Y')
+            first_month = filled_data['YearMonth'].min().strftime('%B-%Y')
+            last_month = filled_data['YearMonth'].max().strftime('%B-%Y')
 
             # Determine trend direction and color
             if start_count < end_count:
@@ -93,7 +95,7 @@ def detect_trends(data):
             filled_data['Percent_Change'] = filled_data['Change'] / filled_data['Prev_Count'].replace(0, np.nan) * 100
 
             for _, row in filled_data.dropna().iterrows():
-                month = row['Created'].strftime('%B-%Y')
+                month = row['YearMonth'].strftime('%B-%Y')
                 change = row['Change']
                 percent_change = row['Percent_Change']
 

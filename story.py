@@ -52,15 +52,12 @@ def detect_trends(data):
             percentage_change = ((end_count - start_count) / start_count) * 100 if start_count != 0 else 0
 
             # Trend direction and color
-            if start_count < end_count:
-                trend_direction = "Increasing 📈"
-                trend_color = "#28a745"
-            elif start_count > end_count:
-                trend_direction = "Decreasing 📉"
-                trend_color = "#dc3545"
+            if category == 'Automated':
+                trend_color = "#28a745" if start_count < end_count else "#dc3545"
+                trend_direction = "Increasing 📈" if start_count < end_count else "Decreasing 📉"
             else:
-                trend_direction = "Stable ➡️"
-                trend_color = "#6c757d"
+                trend_color = "#dc3545" if start_count < end_count else "#28a745"
+                trend_direction = "Increasing 📈" if start_count < end_count else "Decreasing 📉"
 
             # Add detailed category trends
             trends_html += f"""
@@ -93,13 +90,13 @@ def detect_trends(data):
                     change = row['Change']
                     percent_change = row['Percent_Change']
 
-                    # Trend message
-                    if change > 0:
-                        direction = "jumped ⬆️"
-                        color = "#28a745"
+                    # Color logic for jumps
+                    if category == 'Automated':
+                        color = "#28a745" if change > 0 else "#dc3545"
+                        direction = "jumped ⬆️" if change > 0 else "dropped ⬇️"
                     else:
-                        direction = "dropped ⬇️"
-                        color = "#dc3545"
+                        color = "#dc3545" if change > 0 else "#28a745"
+                        direction = "jumped ⬆️" if change > 0 else "dropped ⬇️"
 
                     trends_html += f"""
                     <li style='color: {color};'>

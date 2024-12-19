@@ -204,3 +204,149 @@ def generate_predictions_with_tabs(df):
     </div>
     """
     return predictions_html
+
+
+
+
+
+def generate_predictions(df):
+    predictions_html = """
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+        }
+        .section {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            background-color: #f9f9f9;
+        }
+        .section-title {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .sub-section-title {
+            font-size: 1em;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+        li {
+            margin: 5px 0;
+            font-size: 0.9em;
+            line-height: 1.5;
+        }
+        .green {
+            color: #28a745;
+            font-weight: bold;
+        }
+        .red {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        .orange {
+            color: #fd7e14;
+            font-weight: bold;
+        }
+        .neutral {
+            color: #6c757d;
+        }
+    </style>
+    """
+
+    for month, month_group in df.groupby('Month'):
+        month_name = month_group['Created'].dt.strftime('%B-%Y').iloc[0]
+        squad_stats = month_group.groupby(['Project', 'Components']).agg(
+            Automated=('Category', lambda x: (x == 'Automated').sum()),
+            Manual=('Category', lambda x: (x == 'Manual').sum()),
+            Backlog=('Category', lambda x: (x == 'Backlog').sum()),
+            Total=('Category', 'size')
+        ).reset_index()
+
+        squad_stats['Backlog_Difference'] = squad_stats['Total'] - squad_stats['Backlog']
+        completed_automation_squads = squad_stats[(squad_stats['Backlog'] == 0) & (squad_stats['Automated'] > 0)]
+        focus_squads = squad_stats[
+            ((squad_stats['Automated'] == 0) & (squad_stats['Backlog'] > 0) & (squad_stats['Backlog'] - squad_stats['Automated'] >= 20)) |
+            ((squad_stats['Backlog'] != 0) & (abs(squad_stats['Automated'] - squad_stats['Backlog']) >= 20))
+        ]
+        complete_soon_squads = squad_stats[
+            (squad_stats['Backlog'] != 0) & (abs(squad_stats['Automated'] - squad_stats['Backlog']) <= 20)
+        ]
+        no_backlog_no_automation_squads = squad_stats[(squad_stats['Backlog'] == 0) & (squad_stats['Automated'] == 0)]
+
+        predictions_html += f"""
+        <div class='section'>
+            <div class='section-title'>{month_name}</div>
+
+            <div class='sub-section'>
+                <div class='sub-section-title'>Squads with 0 Backlog:</div>
+                <ul>
+        """
+        if completed_automation_squads.empty:
+            predictions_html += "<li class='neutral'>No squad falls into this prediction</li>"
+        else:
+            for idx, row in completed_automation_squads.iterrows():
+                predictions_html += (
+                    f"<li><b>{row['Components']} ({row['Project']})</b> - "
+                    f"<span class='green'>{row['Automated']}</span> TCs are automated along with {row['Manual']} Manual TCs</li>"
+                )
+        predictions_html += "</ul></div>"
+
+        predictions_html += """
+            <div class='sub-section'>
+                <div class='sub-section-title'>Squads to be focused on:</div>
+                <ul>
+        """
+        if focus_squads.empty:
+            predictions_html += "<li class='neutral'>No squad falls into this prediction</li>"
+        else:
+            for idx, row in focus_squads.iterrows():
+                yet_to_be_automated = row['Backlog'] - row['Automated']
+                predictions_html += (
+                    f"<li><b>{row['Components']} ({row['Project']})</b> - "
+                    f"<span class='red'>{yet_to_be_automated}</span> TCs are yet to be automated based on Automated/Backlog: "
+                    f"{row['Automated']}/{row['Backlog']}</li>"
+                )
+        predictions_html += "</ul></div>"
+
+        predictions_html += """
+            <div class='sub-section'>
+                <div class='sub-section-title'>Squads tend to complete automation soon:</div>
+                <ul>
+        """
+        if complete_soon_squads.empty:
+            predictions_html += "<li class='neutral'>No squad falls into this prediction</li>"
+        else:
+            for idx, row in complete_soon_squads.iterrows():
+                yet_to_be_automated = row['Backlog'] - row['Automated']
+                predictions_html += (
+                    f"<li><b>{row['Components']} ({row['Project']})</b> - "
+                    f"<span class='orange'>{yet_to_be_automated}</span> TCs can be automated based on Automated/Backlog: "
+                    f"{row['Automated']}/{row['Backlog']}</li>"
+                )
+        predictions_html += "</ul></div>"
+
+        predictions_html += """
+            <div class='sub-section'>
+                <div class='sub-section-title'>Squads to review:</div>
+                <ul>
+        """
+        if no_backlog_no_automation_squads.empty:
+            predictions_html += "<li class='neutral'>No squad falls into this prediction</li>"
+        else:
+            for idx, row in no_backlog_no_automation_squads.iterrows():
+                predictions_html += (
+                    f"<li><b>{row['Components']} ({row['Project']})</b> has "
+                    f"{row['Automated']} Automated TCs & {row['Backlog']} Backlog TCs with only "
+                    f"{row['Manual']} Manual TCs. Please review.</li>"
+                )
+        predictions_html += "</ul></div></div>"
+
+    return predictions_html
+

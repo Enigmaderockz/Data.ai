@@ -1,359 +1,3 @@
-def generate_predictions_with_tabs(df):
-    predictions_html = """
-    <style>
-        body {
-            font-family: Microsoft JhengHei UI, sans-serif;
-            margin: 20px;
-        }
-        .tabs {
-            display: flex;
-            flex-wrap: wrap;
-            margin-bottom: 20px;
-            cursor: pointer;
-        }
-        .tab {
-            padding: 10px 20px;
-            margin-right: 5px;
-            background-color: #f1f1f1;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-        }
-        .tab.active {
-            background-color: #0078D4;
-            color: white;
-        }
-        .tab-content {
-            display: none;
-            border: 1px solid #ccc;
-            padding: 20px;
-            border-radius: 4px;
-            background-color: #f9f9f9;
-        }
-        .tab-content.active {
-            display: block;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        table th, table td {
-            text-align: left;
-            padding: 8px;
-            border-bottom: 1px solid #ddd;
-        }
-        table th {
-            background-color: #0078D4;
-            color: white;
-        }
-        .highlight-green {
-            color: #6EC207; /* Green */
-            font-weight: bold;
-        }
-        .highlight-red {
-            color: red;
-            font-weight: bold;
-        }
-        .highlight-orange {
-            color: orange;
-            font-weight: bold;
-        }
-        .no-data {
-            text-align: center;
-            font-style: italic;
-        }
-    </style>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const tabs = document.querySelectorAll('.tab');
-            const tabContents = document.querySelectorAll('.tab-content');
-
-            tabs.forEach((tab, index) => {
-                tab.addEventListener('click', () => {
-                    tabs.forEach(t => t.classList.remove('active'));
-                    tabContents.forEach(tc => tc.classList.remove('active'));
-
-                    tab.classList.add('active');
-                    tabContents[index].classList.add('active');
-                });
-            });
-
-            // Activate the first tab by default
-            tabs[0].classList.add('active');
-            tabContents[0].classList.add('active');
-        });
-    </script>
-
-    <div class="tabs">
-        <div class="tab">Squads with 0 Backlog</div>
-        <div class="tab">Squads to be Focused On</div>
-        <div class="tab">Squads Tend to Complete Soon</div>
-        <div class="tab">Squads to Review</div>
-    </div>
-
-    <div class="tab-content">
-        <h3>Squads with 0 Backlog</h3>
-        <table>
-            <thead>
-                <tr>
-                    <th>Component</th>
-                    <th>Project</th>
-                    <th>Automated</th>
-                    <th>Manual</th>
-                </tr>
-            </thead>
-            <tbody>
-    """
-    # "Squads with 0 Backlog" section
-    for month, month_group in df.groupby('Month'):
-        squad_stats = month_group.groupby(['Project', 'Components']).agg(
-            Automated=('Category', lambda x: (x == 'Automated').sum()),
-            Manual=('Category', lambda x: (x == 'Manual').sum()),
-        ).reset_index()
-        completed_automation_squads = squad_stats[squad_stats['Automated'] > 0]
-
-        if not completed_automation_squads.empty:
-            for _, row in completed_automation_squads.iterrows():
-                predictions_html += f"""
-                <tr>
-                    <td>{row['Components']}</td>
-                    <td>{row['Project']}</td>
-                    <td class="highlight-green">{row['Automated']}</td>
-                    <td>{row['Manual']}</td>
-                </tr>
-                """
-        else:
-            predictions_html += "<tr><td colspan='4' class='no-data'>No squads with 0 backlog</td></tr>"
-
-    predictions_html += """
-            </tbody>
-        </table>
-    </div>
-
-    <div class="tab-content">
-        <h3>Squads to be Focused On</h3>
-        <table>
-            <thead>
-                <tr>
-                    <th>Component</th>
-                    <th>Project</th>
-                    <th>Backlog</th>
-                    <th>Automated</th>
-                </tr>
-            </thead>
-            <tbody>
-    """
-
-    # "Squads to be Focused On" section
-    focus_squads = squad_stats[squad_stats['Automated'] == 0]
-    if not focus_squads.empty:
-        for _, row in focus_squads.iterrows():
-            predictions_html += f"""
-            <tr>
-                <td>{row['Components']}</td>
-                <td>{row['Project']}</td>
-                <td class="highlight-red">{row['Backlog']}</td>
-                <td>{row['Automated']}</td>
-            </tr>
-            """
-    else:
-        predictions_html += "<tr><td colspan='4' class='no-data'>No squads to focus on</td></tr>"
-
-    predictions_html += """
-            </tbody>
-        </table>
-    </div>
-
-    <div class="tab-content">
-        <h3>Squads Tend to Complete Soon</h3>
-        <table>
-            <thead>
-                <tr>
-                    <th>Component</th>
-                    <th>Project</th>
-                    <th>Backlog</th>
-                    <th>Automated</th>
-                </tr>
-            </thead>
-            <tbody>
-    """
-
-    # "Squads Tend to Complete Soon" section
-    complete_soon_squads = squad_stats[squad_stats['Backlog'] - squad_stats['Automated'] <= 20]
-    if not complete_soon_squads.empty:
-        for _, row in complete_soon_squads.iterrows():
-            predictions_html += f"""
-            <tr>
-                <td>{row['Components']}</td>
-                <td>{row['Project']}</td>
-                <td class="highlight-orange">{row['Backlog']}</td>
-                <td>{row['Automated']}</td>
-            </tr>
-            """
-    else:
-        predictions_html += "<tr><td colspan='4' class='no-data'>No squads tend to complete soon</td></tr>"
-
-    predictions_html += """
-            </tbody>
-        </table>
-    </div>
-
-    <div class="tab-content">
-        <h3>Squads to Review</h3>
-        <p>No squads fall into this prediction</p>
-    </div>
-    """
-    return predictions_html
-
-
-
-
-
-def generate_predictions(df):
-    predictions_html = """
-    <style>
-        body {
-            font-family: 'Arial', sans-serif;
-        }
-        .section {
-            margin-bottom: 20px;
-            padding: 15px;
-            border: 1px solid #ccc;
-            border-radius: 10px;
-            background-color: #f9f9f9;
-        }
-        .section-title {
-            font-size: 1.2em;
-            font-weight: bold;
-            color: #333;
-            margin-bottom: 10px;
-        }
-        .sub-section-title {
-            font-size: 1em;
-            font-weight: bold;
-            margin: 10px 0;
-        }
-        ul {
-            list-style: none;
-            padding: 0;
-        }
-        li {
-            margin: 5px 0;
-            font-size: 0.9em;
-            line-height: 1.5;
-        }
-        .green {
-            color: #28a745;
-            font-weight: bold;
-        }
-        .red {
-            color: #dc3545;
-            font-weight: bold;
-        }
-        .orange {
-            color: #fd7e14;
-            font-weight: bold;
-        }
-        .neutral {
-            color: #6c757d;
-        }
-    </style>
-    """
-
-    for month, month_group in df.groupby('Month'):
-        month_name = month_group['Created'].dt.strftime('%B-%Y').iloc[0]
-        squad_stats = month_group.groupby(['Project', 'Components']).agg(
-            Automated=('Category', lambda x: (x == 'Automated').sum()),
-            Manual=('Category', lambda x: (x == 'Manual').sum()),
-            Backlog=('Category', lambda x: (x == 'Backlog').sum()),
-            Total=('Category', 'size')
-        ).reset_index()
-
-        squad_stats['Backlog_Difference'] = squad_stats['Total'] - squad_stats['Backlog']
-        completed_automation_squads = squad_stats[(squad_stats['Backlog'] == 0) & (squad_stats['Automated'] > 0)]
-        focus_squads = squad_stats[
-            ((squad_stats['Automated'] == 0) & (squad_stats['Backlog'] > 0) & (squad_stats['Backlog'] - squad_stats['Automated'] >= 20)) |
-            ((squad_stats['Backlog'] != 0) & (abs(squad_stats['Automated'] - squad_stats['Backlog']) >= 20))
-        ]
-        complete_soon_squads = squad_stats[
-            (squad_stats['Backlog'] != 0) & (abs(squad_stats['Automated'] - squad_stats['Backlog']) <= 20)
-        ]
-        no_backlog_no_automation_squads = squad_stats[(squad_stats['Backlog'] == 0) & (squad_stats['Automated'] == 0)]
-
-        predictions_html += f"""
-        <div class='section'>
-            <div class='section-title'>{month_name}</div>
-
-            <div class='sub-section'>
-                <div class='sub-section-title'>Squads with 0 Backlog:</div>
-                <ul>
-        """
-        if completed_automation_squads.empty:
-            predictions_html += "<li class='neutral'>No squad falls into this prediction</li>"
-        else:
-            for idx, row in completed_automation_squads.iterrows():
-                predictions_html += (
-                    f"<li><b>{row['Components']} ({row['Project']})</b> - "
-                    f"<span class='green'>{row['Automated']}</span> TCs are automated along with {row['Manual']} Manual TCs</li>"
-                )
-        predictions_html += "</ul></div>"
-
-        predictions_html += """
-            <div class='sub-section'>
-                <div class='sub-section-title'>Squads to be focused on:</div>
-                <ul>
-        """
-        if focus_squads.empty:
-            predictions_html += "<li class='neutral'>No squad falls into this prediction</li>"
-        else:
-            for idx, row in focus_squads.iterrows():
-                yet_to_be_automated = row['Backlog'] - row['Automated']
-                predictions_html += (
-                    f"<li><b>{row['Components']} ({row['Project']})</b> - "
-                    f"<span class='red'>{yet_to_be_automated}</span> TCs are yet to be automated based on Automated/Backlog: "
-                    f"{row['Automated']}/{row['Backlog']}</li>"
-                )
-        predictions_html += "</ul></div>"
-
-        predictions_html += """
-            <div class='sub-section'>
-                <div class='sub-section-title'>Squads tend to complete automation soon:</div>
-                <ul>
-        """
-        if complete_soon_squads.empty:
-            predictions_html += "<li class='neutral'>No squad falls into this prediction</li>"
-        else:
-            for idx, row in complete_soon_squads.iterrows():
-                yet_to_be_automated = row['Backlog'] - row['Automated']
-                predictions_html += (
-                    f"<li><b>{row['Components']} ({row['Project']})</b> - "
-                    f"<span class='orange'>{yet_to_be_automated}</span> TCs can be automated based on Automated/Backlog: "
-                    f"{row['Automated']}/{row['Backlog']}</li>"
-                )
-        predictions_html += "</ul></div>"
-
-        predictions_html += """
-            <div class='sub-section'>
-                <div class='sub-section-title'>Squads to review:</div>
-                <ul>
-        """
-        if no_backlog_no_automation_squads.empty:
-            predictions_html += "<li class='neutral'>No squad falls into this prediction</li>"
-        else:
-            for idx, row in no_backlog_no_automation_squads.iterrows():
-                predictions_html += (
-                    f"<li><b>{row['Components']} ({row['Project']})</b> has "
-                    f"{row['Automated']} Automated TCs & {row['Backlog']} Backlog TCs with only "
-                    f"{row['Manual']} Manual TCs. Please review.</li>"
-                )
-        predictions_html += "</ul></div></div>"
-
-    return predictions_html
-
-
-
-
-
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -514,6 +158,276 @@ def on_click(event):
 # Connect hover and click events (remains unchanged)
 fig.canvas.mpl_connect('motion_notify_event', on_hover)
 fig.canvas.mpl_connect('button_press_event', on_click)
+
+# Show the chart
+plt.show()
+
+
+
+
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+from matplotlib.ticker import PercentFormatter
+import numpy as np
+from sklearn.linear_model import LinearRegression
+
+# Data preparation (same as before)
+data = {
+    "MONTH": [
+        "December-2024", "December-2024", "December-2024",
+        "November-2024", "November-2024", "November-2024",
+        "October-2024", "October-2024", "October-2024",
+        "September-2024", "September-2024", "September-2024"
+    ],
+    "FLEET": [
+        "Client Onboarding", "GBT DRM Fleet", "LEAD Fleet",
+        "Client Onboarding", "GBT DRM Fleet", "LEAD Fleet",
+        "Client Onboarding", "GBT DRM Fleet", "LEAD Fleet",
+        "Client Onboarding", "GBT DRM Fleet", "LEAD Fleet"
+    ],
+    "AUTOMATED": [122, 25, 0, 214, 238, 681, 793, 387, 460, 1170, 166, 132],
+    "MANUAL": [39, 1, 7, 140, 14, 55, 397, 16, 51, 362, 11, 42],
+    "BACKLOG": [302, 48, 30, 370, 79, 76, 1146, 108, 87, 813, 466, 86],
+    "% AUTOMATED": [26.35, 33.78, 0.0, 29.56, 71.9, 83.87, 33.95, 75.73, 76.92, 49.89, 25.82, 50.77]
+}
+
+df = pd.DataFrame(data)
+
+# Convert MONTH to datetime for sorting
+df["MONTH"] = pd.to_datetime(df["MONTH"], format="%B-%Y")
+df = df.sort_values(by="MONTH")
+
+# Set plot style
+sns.set_theme(style="whitegrid")
+
+# Prepare months for x-axis labels
+df["MONTH_STR"] = df["MONTH"].dt.strftime("%B")
+
+# Train a simple linear regression model for each fleet to predict future values
+def predict_future(fleet_data, months_to_predict=3):
+    # Prepare data for regression
+    fleet_data = fleet_data.sort_values(by="MONTH")
+    X = np.array(range(len(fleet_data))).reshape(-1, 1)  # Months as integer values
+    y = fleet_data["% AUTOMATED"].values  # Target variable (% Automated)
+
+    # Fit a linear regression model
+    model = LinearRegression()
+    model.fit(X, y)
+
+    # Predict future months
+    future_months = np.array(range(len(fleet_data), len(fleet_data) + months_to_predict)).reshape(-1, 1)
+    future_predictions = model.predict(future_months)
+    
+    # Generate future month labels
+    last_month = fleet_data["MONTH"].max()
+    future_dates = [last_month + pd.DateOffset(months=i) for i in range(1, months_to_predict + 1)]
+    
+    return future_dates, future_predictions
+
+# Create the plot
+fig, ax = plt.subplots(figsize=(12, 6))
+plt.subplots_adjust(bottom=0.2)
+
+# Assign unique colors for fleets
+palette = sns.color_palette("husl", len(df["FLEET"].unique()))
+line_objects = {}
+marker_objects = []
+
+# Plot data for each fleet
+for i, fleet in enumerate(df["FLEET"].unique()):
+    fleet_data = df[df["FLEET"] == fleet]
+    
+    # Plot historical data
+    line, = ax.plot(
+        fleet_data["MONTH_STR"], 
+        fleet_data["% AUTOMATED"], 
+        label=fleet, 
+        marker="o", 
+        linewidth=2.5, 
+        color=palette[i],
+        alpha=0.8
+    )
+    line_objects[fleet] = line
+    # Add markers
+    for x, y in zip(fleet_data["MONTH_STR"], fleet_data["% AUTOMATED"]):
+        marker, = ax.plot(x, y, "o", color=palette[i], markersize=6, alpha=0.8, picker=True)
+        marker_objects.append((marker, fleet, y))
+    
+    # Predict future values
+    future_dates, future_predictions = predict_future(fleet_data)
+    future_months = [date.strftime("%B-%Y") for date in future_dates]
+    
+    # Plot future predictions with a dotted line
+    ax.plot(
+        future_months, 
+        future_predictions, 
+        linestyle="--",  # Dotted line
+        color=palette[i],
+        linewidth=2,
+        alpha=0.6,
+        label=f"{fleet} Prediction"
+    )
+
+# Enhance the chart
+ax.set_title("Fleet Progress: Automated Task Percentage Over Months with Future Predictions", fontsize=14, weight="bold")
+ax.set_xlabel("Month", fontsize=12)
+ax.set_ylabel("% Automated", fontsize=12)
+ax.yaxis.set_major_formatter(PercentFormatter())
+ax.tick_params(axis='x', labelsize=10)
+ax.tick_params(axis='y', labelsize=10)
+ax.legend(title="Fleet", fontsize=10, title_fontsize=12, loc="upper left")
+
+# Add grid lines
+ax.grid(visible=True, linestyle="--", alpha=0.6)
+
+# Tooltip for hovering
+def on_hover(event):
+    for marker, fleet, percentage in marker_objects:
+        if marker.contains(event)[0]:
+            ax.annotate(
+                f"{fleet}: {percentage:.2f}% Automated",
+                xy=(event.xdata, event.ydata),
+                xytext=(10, 10),
+                textcoords="offset points",
+                fontsize=10,
+                color="black",
+                backgroundcolor="white",
+                bbox=dict(boxstyle="round,pad=0.3", edgecolor="gray", facecolor="white")
+            )
+            fig.canvas.draw()
+            return
+    # Clear previous annotations
+    for text in ax.texts:
+        text.remove()
+    fig.canvas.draw()
+
+# Click event to highlight lines and clear previous tooltips
+def on_click(event):
+    # Clear previous annotations when clicking
+    for text in ax.texts:
+        text.remove()
+
+    for fleet, line in line_objects.items():
+        if line.contains(event)[0]:  # Check if the line is clicked
+            # Make this line bold (increased linewidth)
+            line.set_linewidth(4)
+            line.set_alpha(1.0)
+        else:
+            # Reduce opacity of other lines
+            line.set_linewidth(2)
+            line.set_alpha(0.3)
+    fig.canvas.draw()
+
+# Connect hover and click events
+fig.canvas.mpl_connect('motion_notify_event', on_hover)
+fig.canvas.mpl_connect('button_press_event', on_click)
+
+# Show the chart
+plt.show()
+
+
+
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+from fbprophet import Prophet
+from matplotlib.ticker import PercentFormatter
+
+# Data preparation
+data = {
+    "MONTH": [
+        "December-2024", "December-2024", "December-2024",
+        "November-2024", "November-2024", "November-2024",
+        "October-2024", "October-2024", "October-2024",
+        "September-2024", "September-2024", "September-2024"
+    ],
+    "FLEET": [
+        "Client Onboarding", "GBT DRM Fleet", "LEAD Fleet",
+        "Client Onboarding", "GBT DRM Fleet", "LEAD Fleet",
+        "Client Onboarding", "GBT DRM Fleet", "LEAD Fleet",
+        "Client Onboarding", "GBT DRM Fleet", "LEAD Fleet"
+    ],
+    "AUTOMATED": [122, 25, 0, 214, 238, 681, 793, 387, 460, 1170, 166, 132],
+    "MANUAL": [39, 1, 7, 140, 14, 55, 397, 16, 51, 362, 11, 42],
+    "BACKLOG": [302, 48, 30, 370, 79, 76, 1146, 108, 87, 813, 466, 86],
+    "% AUTOMATED": [26.35, 33.78, 0.0, 29.56, 71.9, 83.87, 33.95, 75.73, 76.92, 49.89, 25.82, 50.77]
+}
+
+df = pd.DataFrame(data)
+
+# Convert MONTH to datetime for sorting
+df["MONTH"] = pd.to_datetime(df["MONTH"], format="%B-%Y")
+df = df.sort_values(by="MONTH")
+
+# Set plot style
+sns.set_theme(style="whitegrid")
+
+# Prepare months for x-axis labels
+df["MONTH_STR"] = df["MONTH"].dt.strftime("%B")
+
+# Function to predict future using Prophet
+def predict_future_prophet(fleet_data, months_to_predict=3):
+    df_prophet = fleet_data[["MONTH", "% AUTOMATED"]].rename(columns={'MONTH': 'ds', '% AUTOMATED': 'y'})
+    
+    model = Prophet()
+    model.fit(df_prophet)
+    
+    future = model.make_future_dataframe(periods=months_to_predict, freq='M')
+    forecast = model.predict(future)
+    
+    return forecast['ds'].dt.strftime('%B-%Y').tolist(), forecast['yhat'].tolist(), forecast['yhat_lower'].tolist(), forecast['yhat_upper'].tolist()
+
+# Create the plot
+fig, ax = plt.subplots(figsize=(12, 6))
+plt.subplots_adjust(bottom=0.2)
+
+# Assign unique colors for fleets
+palette = sns.color_palette("husl", len(df["FLEET"].unique()))
+line_objects = {}
+
+# Plot data for each fleet
+for i, fleet in enumerate(df["FLEET"].unique()):
+    fleet_data = df[df["FLEET"] == fleet]
+    
+    # Plot historical data
+    line, = ax.plot(
+        fleet_data["MONTH_STR"], 
+        fleet_data["% AUTOMATED"], 
+        label=fleet, 
+        marker="o", 
+        linewidth=2.5, 
+        color=palette[i],
+        alpha=0.8
+    )
+    line_objects[fleet] = line
+    
+    # Predict future values
+    future_dates, future_predictions, lower_bound, upper_bound = predict_future_prophet(fleet_data)
+    
+    # Plot future predictions with confidence intervals
+    ax.plot(
+        future_dates, 
+        future_predictions, 
+        linestyle="--",  
+        color=palette[i],
+        linewidth=2,
+        alpha=0.6,
+        label=f"{fleet} Prediction"
+    )
+    ax.fill_between(future_dates, lower_bound, upper_bound, alpha=0.1, color=palette[i])
+
+# Enhance the chart
+ax.set_title("Fleet Progress: Automated Task Percentage Over Months with Future Predictions", fontsize=14, weight="bold")
+ax.set_xlabel("Month", fontsize=12)
+ax.set_ylabel("% Automated", fontsize=12)
+ax.yaxis.set_major_formatter(PercentFormatter())
+ax.tick_params(axis='x', labelsize=10)
+ax.tick_params(axis='y', labelsize=10)
+ax.legend(title="Fleet", fontsize=10, title_fontsize=12, loc="upper left")
+
+# Add grid lines
+ax.grid(visible=True, linestyle="--", alpha=0.6)
 
 # Show the chart
 plt.show()

@@ -112,11 +112,11 @@ fig.update_layout(
         range=[0, 1]  # Ensure Y-axis goes from 0 to 100%
     ),
     legend_title="Fleet",
-    template="plotly_dark",  # Use a dark theme
+    template="plotly_white",  # Use a dark theme
     font=dict(
-        family="Arial, sans-serif",  # Customize font
+        family="Helvetica, sans-serif",  # Customize font
         size=14,  # Font size
-        color="white"  # Font color
+        color="black"  # Font color
     ),
     legend=dict(
         itemclick=False,  # Disable single-click interaction

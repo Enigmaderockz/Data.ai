@@ -4,7 +4,7 @@ body = f"""
     <style>
         table {{
             border-collapse: collapse;
-            width: 65%;
+            width: 60%;
             margin-bottom: 20px;
             margin-left: 20px;
         }}
@@ -16,7 +16,6 @@ body = f"""
         th {{
             background-color: #88C273;
             color: white;
-            line-height: 1;
         }}
     </style>
 </head>
@@ -33,34 +32,34 @@ body = f"""
 <p>Total User Stories: {user_stories_count}</p>
 """
 
-# Add first table with alternate row colors
+# Add first table with compact cells
 if component_story_counts:
-    body += """<table cellspacing="0" cellpadding="2">
-    <tr style="background-color: #88C273; color: white;">
-        <th>Squad</th>
-        <th>User Story Count</th>
+    body += """<table cellspacing="0" cellpadding="0" style="border-collapse: collapse; width: 60%; margin-left: 20px;">
+    <tr style="background-color: #88C273; color: white; font-size: 12px; height: 25px;">
+        <th style="padding: 2px;">Squad</th>
+        <th style="padding: 2px;">User Story Count</th>
     </tr>"""
     for i, (component, count) in enumerate(component_story_counts.items()):
         row_color = "#F2F2F2" if i % 2 == 0 else "#FFFFFF"
-        body += f"""<tr style="background-color: {row_color};">
-            <td>{component}</td>
-            <td>{count}</td>
+        body += f"""<tr style="background-color: {row_color}; font-size: 12px; height: 20px;">
+            <td style="padding: 2px;">{component}</td>
+            <td style="padding: 2px;">{count}</td>
         </tr>"""
     body += "</table><br><br>"
 
-# Add second table with alternate row colors
+# Add second table with compact cells
 body += f"<p>QA Required User Stories: {qa_required_count}</p>"
 if component_qa_counts:
-    body += """<table cellspacing="0" cellpadding="2">
-    <tr style="background-color: #88C273; color: white;">
-        <th>Squad</th>
-        <th>QA Scope Count</th>
+    body += """<table cellspacing="0" cellpadding="0" style="border-collapse: collapse; width: 60%; margin-left: 20px;">
+    <tr style="background-color: #88C273; color: white; font-size: 12px; height: 25px;">
+        <th style="padding: 2px;">Squad</th>
+        <th style="padding: 2px;">QA Scope Count</th>
     </tr>"""
     for i, (component, count) in enumerate(component_qa_counts.items()):
         row_color = "#F2F2F2" if i % 2 == 0 else "#FFFFFF"
-        body += f"""<tr style="background-color: {row_color};">
-            <td>{component}</td>
-            <td>{count}</td>
+        body += f"""<tr style="background-color: {row_color}; font-size: 12px; height: 20px;">
+            <td style="padding: 2px;">{component}</td>
+            <td style="padding: 2px;">{count}</td>
         </tr>"""
     body += "</table><br><br>"
 

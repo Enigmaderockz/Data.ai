@@ -31,7 +31,7 @@
             border: 1px solid #ddd;
             margin-bottom: 20px;
             margin-left: 20px;
-            font-size: 12px; /* Reduced font size for compactness */
+            font-size: 13px; /* Slightly larger font size */
             line-height: 1.2;
             font-family: Calibri, Arial, sans-serif; /* Ensure Calibri is used in tables */
         }
@@ -42,15 +42,15 @@
             border: 1px solid #ddd;
             text-align: center;
             vertical-align: middle;
-            padding: 4px 8px; /* Slightly increased padding for readability */
+            padding: 6px 8px; /* Increased padding for readability */
             font-family: Calibri, Arial, sans-serif; /* Ensure Calibri is used in headers */
         }
         td {
             border: 1px solid #ddd;
-            text-align: center;
+            text-align: left;
             vertical-align: middle;
-            padding: 4px 8px; /* Consistent padding */
-            font-size: 12px;
+            padding: 6px 8px; /* Consistent padding */
+            font-size: 13px;
             font-family: Calibri, Arial, sans-serif; /* Ensure Calibri is used in cells */
         }
         .even-row {
@@ -58,6 +58,9 @@
         }
         .odd-row {
             background-color: #FFFFFF; /* White for odd rows */
+        }
+        .red-text {
+            color: red; /* Style for "Not available" text */
         }
     </style>
 </head>
@@ -79,14 +82,14 @@
 if component_story_counts:
     body += """<table cellpadding="0" cellspacing="0">
     <tr>
-        <th style="background-color: #2C5F8A; color: white; font-weight: bold; border: 1px solid #ddd; padding: 4px 8px; font-family: Calibri, Arial, sans-serif;">Squad</th>
-        <th style="background-color: #2C5F8A; color: white; font-weight: bold; border: 1px solid #ddd; padding: 4px 8px; font-family: Calibri, Arial, sans-serif;">User Story Count</th>
+        <th style="background-color: #2C5F8A; color: white; font-weight: bold; border: 1px solid #ddd; padding: 6px 8px; font-family: Calibri, Arial, sans-serif;">Squad</th>
+        <th style="background-color: #2C5F8A; color: white; font-weight: bold; border: 1px solid #ddd; padding: 6px 8px; font-family: Calibri, Arial, sans-serif;">User Story Count</th>
     </tr>"""
     for i, (component, count) in enumerate(component_story_counts.items()):
         row_class = "even-row" if i % 2 == 0 else "odd-row"
         body += f"""<tr style="background-color: {'#F9F9F9' if row_class == 'even-row' else '#FFFFFF'};">
-            <td style="border: 1px solid #ddd; padding: 4px 8px; font-size: 12px; font-family: Calibri, Arial, sans-serif;">{component}</td>
-            <td style="border: 1px solid #ddd; padding: 4px 8px; font-size: 12px; font-family: Calibri, Arial, sans-serif;">{count}</td>
+            <td style="border: 1px solid #ddd; padding: 6px 8px; font-size: 13px; font-family: Calibri, Arial, sans-serif;">{component}</td>
+            <td style="border: 1px solid #ddd; padding: 6px 8px; font-size: 13px; font-family: Calibri, Arial, sans-serif;">{count}</td>
         </tr>"""
     body += "</table><br><br>"
 # Add second table with alternate row colors
@@ -94,14 +97,109 @@ body += f"<p>QA Required User Stories: {qa_required_count}</p>"
 if component_qa_counts:
     body += """<table cellpadding="0" cellspacing="0">
     <tr>
-        <th style="background-color: #2C5F8A; color: white; font-weight: bold; border: 1px solid #ddd; padding: 4px 8px; font-family: Calibri, Arial, sans-serif;">Squad</th>
-        <th style="background-color: #2C5F8A; color: white; font-weight: bold; border: 1px solid #ddd; padding: 4px 8px; font-family: Calibri, Arial, sans-serif;">QA Scope Count</th>
+        <th style="background-color: #2C5F8A; color: white; font-weight: bold; border: 1px solid #ddd; padding: 6px 8px; font-family: Calibri, Arial, sans-serif;">Squad</th>
+        <th style="background-color: #2C5F8A; color: white; font-weight: bold; border: 1px solid #ddd; padding: 6px 8px; font-family: Calibri, Arial, sans-serif;">QA Scope Count</th>
     </tr>"""
     for i, (component, count) in enumerate(component_qa_counts.items()):
         row_class = "even-row" if i % 2 == 0 else "odd-row"
         body += f"""<tr style="background-color: {'#F9F9F9' if row_class == 'even-row' else '#FFFFFF'};">
-            <td style="border: 1px solid #ddd; padding: 4px 8px; font-size: 12px; font-family: Calibri, Arial, sans-serif;">{component}</td>
-            <td style="border: 1px solid #ddd; padding: 4px 8px; font-size: 12px; font-family: Calibri, Arial, sans-serif;">{count}</td>
+            <td style="border: 1px solid #ddd; padding: 6px 8px; font-size: 13px; font-family: Calibri, Arial, sans-serif;">{component}</td>
+            <td style="border: 1px solid #ddd; padding: 6px 8px; font-size: 13px; font-family: Calibri, Arial, sans-serif;">{count}</td>
+        </tr>"""
+    body += "</table><br><br>"
+
+# Functional Test Plans Table
+if functional_test_plans_summaries:
+    body += """<table cellpadding="0" cellspacing="0">
+    <tr>
+        <th style="background-color: #2C5F8A; color: white; font-weight: bold; border: 1px solid #ddd; padding: 6px 8px; font-family: Calibri, Arial, sans-serif;">Issue key</th>
+        <th style="background-color: #2C5F8A; color: white; font-weight: bold; border: 1px solid #ddd; padding: 6px 8px; font-family: Calibri, Arial, sans-serif;">Squad</th>
+        <th style="background-color: #2C5F8A; color: white; font-weight: bold; border: 1px solid #ddd; padding: 6px 8px; font-family: Calibri, Arial, sans-serif;">Summary</th>
+        <th style="background-color: #2C5F8A; color: white; font-weight: bold; border: 1px solid #ddd; padding: 6px 8px; font-family: Calibri, Arial, sans-serif;">Begin Date (IST)</th>
+        <th style="background-color: #2C5F8A; color: white; font-weight: bold; border: 1px solid #ddd; padding: 6px 8px; font-family: Calibri, Arial, sans-serif;">End Date (IST)</th>
+    </tr>"""
+    for i, summary in enumerate(functional_test_plans_summaries):
+        issue_key, component_text, summary_text, begin_date, end_date = summary.split(", ")
+        begin_date_class = "red-text" if begin_date == "Not available" else ""
+        end_date_class = "red-text" if end_date == "Not available" else ""
+        row_class = "even-row" if i % 2 == 0 else "odd-row"
+        body += f"""<tr style="background-color: {'#F9F9F9' if row_class == 'even-row' else '#FFFFFF'};">
+            <td style="border: 1px solid #ddd; padding: 6px 8px; font-size: 13px; font-family: Calibri, Arial, sans-serif;"><a href='https://morganstanley-wm.atlassian.net/browse/{issue_key}'>{issue_key}</a></td>
+            <td style="border: 1px solid #ddd; padding: 6px 8px; font-size: 13px; font-family: Calibri, Arial, sans-serif;">{component_text}</td>
+            <td style="border: 1px solid #ddd; padding: 6px 8px; font-size: 13px; font-family: Calibri, Arial, sans-serif;">{summary_text}</td>
+            <td style="border: 1px solid #ddd; padding: 6px 8px; font-size: 13px; font-family: Calibri, Arial, sans-serif;" class='{begin_date_class}'>{begin_date}</td>
+            <td style="border: 1px solid #ddd; padding: 6px 8px; font-size: 13px; font-family: Calibri, Arial, sans-serif;" class='{end_date_class}'>{end_date}</td>
+        </tr>"""
+    body += "</table><br><br>"
+body += f"<p class='{regression_test_plans_class}'>Regression Test Plans: {regression_test_plans_count}</p>"
+body += "<br>"
+
+# Regression Test Plans Table
+if regression_test_plans_summaries:
+    body += """<table cellpadding="0" cellspacing="0">
+    <tr>
+        <th style="background-color: #2C5F8A; color: white; font-weight: bold; border: 1px solid #ddd; padding: 6px 8px; font-family: Calibri, Arial, sans-serif;">Issue key</th>
+        <th style="background-color: #2C5F8A; color: white; font-weight: bold; border: 1px solid #ddd; padding: 6px 8px; font-family: Calibri, Arial, sans-serif;">Squad</th>
+        <th style="background-color: #2C5F8A; color: white; font-weight: bold; border: 1px solid #ddd; padding: 6px 8px; font-family: Calibri, Arial, sans-serif;">Summary</th>
+        <th style="background-color: #2C5F8A; color: white; font-weight: bold; border: 1px solid #ddd; padding: 6px 8px; font-family: Calibri, Arial, sans-serif;">Begin Date (IST)</th>
+        <th style="background-color: #2C5F8A; color: white; font-weight: bold; border: 1px solid #ddd; padding: 6px 8px; font-family: Calibri, Arial, sans-serif;">End Date (IST)</th>
+    </tr>"""
+    for i, summary in enumerate(regression_test_plans_summaries):
+        issue_key, component_text, summary_text, begin_date, end_date = summary.split(", ")
+        begin_date_class = "red-text" if begin_date == "Not available" else ""
+        end_date_class = "red-text" if end_date == "Not available" else ""
+        row_class = "even-row" if i % 2 == 0 else "odd-row"
+        body += f"""<tr style="background-color: {'#F9F9F9' if row_class == 'even-row' else '#FFFFFF'};">
+            <td style="border: 1px solid #ddd; padding: 6px 8px; font-size: 13px; font-family: Calibri, Arial, sans-serif;"><a href='https://morganstanley-wm.atlassian.net/browse/{issue_key}'>{issue_key}</a></td>
+            <td style="border: 1px solid #ddd; padding: 6px 8px; font-size: 13px; font-family: Calibri, Arial, sans-serif;">{component_text}</td>
+            <td style="border: 1px solid #ddd; padding: 6px 8px; font-size: 13px; font-family: Calibri, Arial, sans-serif;">{summary_text}</td>
+            <td style="border: 1px solid #ddd; padding: 6px 8px; font-size: 13px; font-family: Calibri, Arial, sans-serif;" class='{begin_date_class}'>{begin_date}</td>
+            <td style="border: 1px solid #ddd; padding: 6px 8px; font-size: 13px; font-family: Calibri, Arial, sans-serif;" class='{end_date_class}'>{end_date}</td>
+        </tr>"""
+    body += "</table><br><br>"
+
+# Open Defects Table
+if open_defects:
+    body += """<table cellpadding="0" cellspacing="0">
+    <tr>
+        <th style="background-color: #2C5F8A; color: white; font-weight: bold; border: 1px solid #ddd; padding: 6px 8px; font-family: Calibri, Arial, sans-serif;">Issue key</th>
+        <th style="background-color: #2C5F8A; color: white; font-weight: bold; border: 1px solid #ddd; padding: 6px 8px; font-family: Calibri, Arial, sans-serif;">Squad</th>
+        <th style="background-color: #2C5F8A; color: white; font-weight: bold; border: 1px solid #ddd; padding: 6px 8px; font-family: Calibri, Arial, sans-serif;">Summary</th>
+        <th style="background-color: #2C5F8A; color: white; font-weight: bold; border: 1px solid #ddd; padding: 6px 8px; font-family: Calibri, Arial, sans-serif;">Issue Type</th>
+        <th style="background-color: #2C5F8A; color: white; font-weight: bold; border: 1px solid #ddd; padding: 6px 8px; font-family: Calibri, Arial, sans-serif;">Status</th>
+    </tr>"""
+    for i, defect in enumerate(open_defects):
+        issue_key, component_text, summary_text, issue_type, status = defect.split(", ", 4)
+        row_class = "even-row" if i % 2 == 0 else "odd-row"
+        body += f"""<tr style="background-color: {'#F9F9F9' if row_class == 'even-row' else '#FFFFFF'};">
+            <td style="border: 1px solid #ddd; padding: 6px 8px; font-size: 13px; font-family: Calibri, Arial, sans-serif;"><a href='https://morganstanley-wm.atlassian.net/browse/{issue_key}'>{issue_key}</a></td>
+            <td style="border: 1px solid #ddd; padding: 6px 8px; font-size: 13px; font-family: Calibri, Arial, sans-serif;">{component_text}</td>
+            <td style="border: 1px solid #ddd; padding: 6px 8px; font-size: 13px; font-family: Calibri, Arial, sans-serif;">{summary_text}</td>
+            <td style="border: 1px solid #ddd; padding: 6px 8px; font-size: 13px; font-family: Calibri, Arial, sans-serif;">{issue_type}</td>
+            <td style="border: 1px solid #ddd; padding: 6px 8px; font-size: 13px; font-family: Calibri, Arial, sans-serif;">{status}</td>
+        </tr>"""
+    body += "</table><br><br>"
+body += f"<p>Closed Defects: {len(closed_defects)}</p>"
+
+# Closed Defects Table
+if closed_defects:
+    body += """<table cellpadding="0" cellspacing="0">
+    <tr>
+        <th style="background-color: #2C5F8A; color: white; font-weight: bold; border: 1px solid #ddd; padding: 6px 8px; font-family: Calibri, Arial, sans-serif;">Issue key</th>
+        <th style="background-color: #2C5F8A; color: white; font-weight: bold; border: 1px solid #ddd; padding: 6px 8px; font-family: Calibri, Arial, sans-serif;">Squad</th>
+        <th style="background-color: #2C5F8A; color: white; font-weight: bold; border: 1px solid #ddd; padding: 6px 8px; font-family: Calibri, Arial, sans-serif;">Summary</th>
+        <th style="background-color: #2C5F8A; color: white; font-weight: bold; border: 1px solid #ddd; padding: 6px 8px; font-family: Calibri, Arial, sans-serif;">Issue Type</th>
+        <th style="background-color: #2C5F8A; color: white; font-weight: bold; border: 1px solid #ddd; padding: 6px 8px; font-family: Calibri, Arial, sans-serif;">Status</th>
+    </tr>"""
+    for i, defect in enumerate(closed_defects):
+        issue_key, component_text, summary_text, issue_type, status = defect.split(", ", 4)
+        row_class = "even-row" if i % 2 == 0 else "odd-row"
+        body += f"""<tr style="background-color: {'#F9F9F9' if row_class == 'even-row' else '#FFFFFF'};">
+            <td style="border: 1px solid #ddd; padding: 6px 8px; font-size: 13px; font-family: Calibri, Arial, sans-serif;"><a href='https://morganstanley-wm.atlassian.net/browse/{issue_key}'>{issue_key}</a></td>
+            <td style="border: 1px solid #ddd; padding: 6px 8px; font-size: 13px; font-family: Calibri, Arial, sans-serif;">{component_text}</td>
+            <td style="border: 1px solid #ddd; padding: 6px 8px; font-size: 13px; font-family: Calibri, Arial, sans-serif;">{summary_text}</td>
+            <td style="border: 1px solid #ddd; padding: 6px 8px; font-size: 13px; font-family: Calibri, Arial, sans-serif;">{issue_type}</td>
+            <td style="border: 1px solid #ddd; padding: 6px 8px; font-size: 13px; font-family: Calibri, Arial, sans-serif;">{status}</td>
         </tr>"""
     body += "</table><br><br>"
 # Closing HTML

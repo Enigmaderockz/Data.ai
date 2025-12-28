@@ -1,0 +1,30 @@
+When Irun a command jobrunhist -j zqscalar_rel_sum_ga in unix and here job is being fetched from excel sheet  job.xlsx with Job Names as column and then we have these values in 
+this column
+I get below text
+
+Job: zqscalar_rel_sum_ga
+
+Start time        End time          Duration   Status      Exit   Machine                     Run Num    NTry
+12/08/2025 01:29  12/27/2025 00:28  1637981    FAILURE     1      ivapp1426654.devin3.ms.com  50753684  1
+12/07/2025 01:55  12/07/2025 02:11  976        SUCCESS     0      ivapp1421900.devin3.ms.com  50719668  1
+11/19/2025 01:29  12/07/2025 00:02  1549995    TERMINATED  15     ivapp1426654.devin3.ms.com  49885417  1
+Average time run based on failed
+Average time run based on passed
+
+what you need to do is first create a table  in MSSQL with columns job name, start time, end time, duration, status, exit, machine, run num, ntry
+so give me a SQL for that based on your understanding of column names, data type and constraint.
+
+once table is created, I am running jobrunhist -j zqscalar_rel_sum_ga in unix and you need to fetch values from these commands
+Job: zqscalar_rel_sum_ga
+
+Start time        End time          Duration   Status      Exit   Machine                     Run Num    NTry
+
+and prepare insert queries to insert these values in table. I need you to print these insert queries also and make sure that it generates insert queries 
+up to the start time value. I mean it has to exclude all these kind of rows which don't have start time value like Average time run based on failed
+Average time run based on passed
+o anything so basically upto time.
+
+
+
+
+
